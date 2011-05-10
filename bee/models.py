@@ -10,6 +10,19 @@ class Image(models.Model):
     height = models.IntegerField()
 
 
+class Identity(models.Model):
+
+    identifier = models.CharField(max_length=200)
+    user = models.ForeignKey('auth.User', blank=True, null=True)
+
+
+class TrustGroup(models.Model):
+
+    tag = models.CharField(max_length=200, unique=True)
+    display_name = models.CharField(max_length=200)
+    members = models.ManyToManyField(Identity)
+
+
 class Post(models.Model):
 
     author = models.ForeignKey('auth.User', related_name='posts_authored')
@@ -21,6 +34,8 @@ class Post(models.Model):
     created = models.DateTimeField(default=datetime.now)
     modified = models.DateTimeField(default=datetime.now)
     # render_mode = ...
+
+    private_to = models.ManyToManyField(TrustGroup)
 
 
 # TODO: is this really a siteinfo? with site's display name?
