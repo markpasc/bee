@@ -15,12 +15,18 @@ class Identity(models.Model):
     identifier = models.CharField(max_length=200)
     user = models.ForeignKey('auth.User', blank=True, null=True)
 
+    def __unicode__(self):
+        return self.identifier
+
 
 class TrustGroup(models.Model):
 
     tag = models.CharField(max_length=200, unique=True)
     display_name = models.CharField(max_length=200)
     members = models.ManyToManyField(Identity)
+
+    def __unicode__(self):
+        return self.display_name
 
 
 class Post(models.Model):
