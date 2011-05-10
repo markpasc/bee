@@ -42,7 +42,7 @@ def permalink(request, slug, author=None):
         return HttpResponseNotFound('No author selected')
 
     try:
-        post = user.posts_authored.get(slug=slug)
+        post = author.posts_authored.get(slug=slug)
     except Post.DoesNotExist:
         return HttpResponseNotFound('No such post %r' % slug)
 
