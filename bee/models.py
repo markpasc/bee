@@ -23,6 +23,7 @@ class Post(models.Model):
     # render_mode = ...
 
 
+# TODO: is this really a siteinfo? with site's display name?
 class AuthorSite(models.Model):
 
     author = models.ForeignKey('auth.User', unique=True)
