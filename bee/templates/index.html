@@ -16,7 +16,9 @@
                 url: '{{ STATIC_URL }}editor.html',
                 dataType: 'html',
                 success: function(data, textStatus, xhr) {
-                    $('#content .entry').first().before($(data));
+                    var $editor = $(data);
+                    var $firstEntry = $('#content .entry').first();
+                    $firstEntry.size() ? $firstEntry.before($editor) : $('#content').append($(data));
                     $('#entry-editor .entry-header').focus();
                 }
             });
