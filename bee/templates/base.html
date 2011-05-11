@@ -5,7 +5,23 @@
 
     {% block htmlhead %}
         <script type="text/javascript" src="{{ STATIC_URL }}jquery.js"></script>
+        <script type="text/javascript" src="{{ STATIC_URL }}jquery.cookie.js"></script>
+
+        <script type="text/javascript">
+            $(document).ajaxSend(function (event, xhr, settings) {
+                function safeMethod(method) {
+                    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+                }
+
+                if (!safeMethod(settings.type) && !settings.crossDomain) {
+                    xhr.setRequestHeader('X-CSRFToken', $.cookie('csrftoken'));
+                }
+            });
+        </script>
+
         <link rel="stylesheet" href="{{ STATIC_URL }}style.css">
+        <link rel="stylesheet" href="{{ STATIC_URL }}buttons.css">
+
         <style type="text/css">
         </style>
     {% endblock %}
@@ -14,27 +30,24 @@
 
     <div id="page">
 
+        <div id="controls">
+            {% if user.is_anonymous %}
+            <a href="/signin" class="button button-orange">Sign in</a>
+            {% else %}
+                {% block controls %}
+                <a href="/signout" class="button button-black">Sign out</a>
+                {% endblock %}
+            {% endif %}
+        </div>
+
         <div id="title" class="pkg">
             <h1><a href="/">{{ author.first_name }}</a></h1>
-            <div id="greets">
-                <p><a class="sign-in-link" href="/signin">Sign in</a></p>
-            </div>
         </div>
 
         <div id="content">
             {% block content %}{% endblock %}
         </div>
 
-    </div>
-
-    <div id="controls">
-        {% if user.is_anonymous %}
-        <a href="/signin">Sign in</a>
-        {% else %}
-            {% block controls %}
-            <a href="/signout">Sign out</a>
-            {% endblock %}
-        {% endif %}
     </div>
 
 </body></html>

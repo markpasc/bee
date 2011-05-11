@@ -8,7 +8,7 @@ body{font:13px/1.5 'Helvetica Neue',Arial,'Liberation Sans',FreeSans,sans-serif}
 
 /* custom layout */
 #page {
-    width: 760px;
+    width: 800px;
     margin: 0 auto;
 }
 #title #greets {float: right;}
@@ -24,13 +24,15 @@ body{font:13px/1.5 'Helvetica Neue',Arial,'Liberation Sans',FreeSans,sans-serif}
 }
 
 #controls {
-    position: absolute;
+    position: relative;
     top: 0;
     right: 0;
     z-index: 9001;
+    margin: 20px 0 20px 0;
 
+    text-align: right;
     font-size: 0.8em;
-    padding-right: 1em;
+    padding: 0;
 }
 
 
@@ -147,3 +149,4 @@ pre, code, tt {
 pre { white-space: pre-wrap; overflow: auto; }
 pre.wide { white-space: pre; }
 
+*[contenteditable] { }

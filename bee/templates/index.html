@@ -3,14 +3,23 @@
 {% block htmltitle %}{{ author.first_name }}{% endblock %}
 
 {% block controls %}
-    <a id="control-new-post" href="#">New post</a>
+    <a id="control-new-post" class="button button-green" href="#">New post</a>
 
     {{ block.super }}
 
     <script type="text/javascript">
         $('#control-new-post').click(function () {
-            var $editor = $('<div class="entry editor"><h2 class="entry-header" contenteditable="true">Title</h2><!-- author --><div class="entry-content pkg" contenteditable="true"><p>content goes here</p></div><div class="entry-footer"><span>~timestamp~</span> <a href="#">Permalink</a></div></div>');
-            $('#content .entry').first().before($editor);
+            if ($('#entry-editor').size())
+                return false;
+
+            $.ajax({
+                url: '{{ STATIC_URL }}editor.html',
+                dataType: 'html',
+                success: function(data, textStatus, xhr) {
+                    $('#content .entry').first().before($(data));
+                    $('#entry-editor .entry-header').focus();
+                }
+            });
             return false;
         });
     </script>

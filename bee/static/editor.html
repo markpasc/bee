@@ -1,0 +1,41 @@
+<div id="entry-editor" class="entry">
+    <h2 class="entry-header" contenteditable="true">Title</h2>
+    <!-- author -->
+    <div class="entry-content pkg" contenteditable="true"><p>content goes here</p></div>
+    <div class="entry-footer">
+        <span>~timestamp~</span>
+        <span>Permalink: <span id="entry-slug" contenteditable="true">title</span></span>
+        <span class="editor-buttons" style="display: inline-block; float: right;">
+            <a id="editor-post-button" href="#" class="button button-green">Post</a>
+            <a href="#" class="button button-black">Discard</a>
+        </span>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $('#entry-editor .entry-header').bind('keyup', function (e) {
+        $('#entry-slug').text($(this).text());
+    });
+
+    $('#editor-post-button').click(function (e) {
+        $.ajax({
+            url: '/_/edit',
+            type: 'POST',
+            data: {
+                //avatar: 
+                title: $('#entry-editor .entry-header').text(),
+                html: $('#entry-editor .entry-content').html(),
+                slug: $('#entry-slug').text()
+                //private_to: 
+                //published: 
+            },
+            success: function (data, textStatus, xhr) {
+                alert(data);
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                alert('ERROR: ' + xhr.responseText);
+            }
+        });
+        return false;
+    });
+</script>

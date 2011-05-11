@@ -36,12 +36,19 @@ class Post(models.Model):
     title = models.CharField(max_length=255, blank=True)
     html = models.TextField(blank=True)
     slug = models.SlugField()
-    atom_id = models.CharField(max_length=255)
+    atom_id = models.CharField(max_length=255, unique=True)  # even for different authors, should be unique
     created = models.DateTimeField(default=datetime.now)
     modified = models.DateTimeField(default=datetime.now)
     # render_mode = ...
 
-    private_to = models.ManyToManyField(TrustGroup)
+    private_to = models.ManyToManyField(TrustGroup, blank=True)
+
+    @property
+    def permalink(self):
+        return 'http://%s/%s' % (self.author.authorsite_set.get().site.domain, self.slug)
+
+    class Meta:
+        unique_together = (('author', 'slug'),)
 
 
 # TODO: is this really a siteinfo? with site's display name?
