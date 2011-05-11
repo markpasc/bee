@@ -23,6 +23,17 @@ body{font:13px/1.5 'Helvetica Neue',Arial,'Liberation Sans',FreeSans,sans-serif}
     line-height: 0;
 }
 
+#controls {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 9001;
+
+    font-size: 0.8em;
+    padding-right: 1em;
+}
+
+
 /* "theme" */
 body {
     font-size: 1em;

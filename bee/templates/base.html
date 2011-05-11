@@ -4,9 +4,10 @@
     <title>{% block htmltitle %}{% endblock %}</title>
 
     {% block htmlhead %}
-    <link rel="stylesheet" href="{{ STATIC_URL }}style.css">
-    <style type="text/css">
-    </style>
+        <script type="text/javascript" src="{{ STATIC_URL }}jquery.js"></script>
+        <link rel="stylesheet" href="{{ STATIC_URL }}style.css">
+        <style type="text/css">
+        </style>
     {% endblock %}
 
 </head><body>
@@ -24,6 +25,16 @@
             {% block content %}{% endblock %}
         </div>
 
+    </div>
+
+    <div id="controls">
+        {% if user.is_anonymous %}
+        <a href="/signin">Sign in</a>
+        {% else %}
+            {% block controls %}
+            <a href="/signout">Sign out</a>
+            {% endblock %}
+        {% endif %}
     </div>
 
 </body></html>
