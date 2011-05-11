@@ -21,6 +21,7 @@
         $.ajax({
             url: '/_/edit',
             type: 'POST',
+            dataType: 'json',
             data: {
                 //avatar: 
                 title: $('#entry-editor .entry-header').text(),
@@ -30,7 +31,7 @@
                 //published: 
             },
             success: function (data, textStatus, xhr) {
-                alert(data);
+                window.location = data['permalink'];
             },
             error: function (xhr, textStatus, errorThrown) {
                 alert('ERROR: ' + xhr.responseText);

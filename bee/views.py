@@ -2,9 +2,8 @@ from functools import wraps
 import json
 
 from django.contrib.auth.models import User
-from django.http import HttpResponse, HttpResponseNotFound, HttpResponseForbidden, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseNotFound
 from django.shortcuts import render
-import pystache
 
 from bee.models import Post, Template
 from bee.forms import PostForm
@@ -65,6 +64,7 @@ def edit(request, author=None):
         post = form.save(commit=False)
         post.atom_id = 'tag:butt:%d:%s' % (post.author.pk, post.slug)
         post.save()
-        return HttpResponseRedirect(post.permalink)
 
-    return HttpResponseForbidden(json.dumps(form.errors), content_type='text/plain')
+        return HttpResponse(json.dumps({'id': post.pk, 'permalink': post.permalink}))
+
+    return HttpResponseBadRequest(json.dumps(form.errors), content_type='application/json')
