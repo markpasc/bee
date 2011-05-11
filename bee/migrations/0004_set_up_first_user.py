@@ -1,123 +1,30 @@
 # encoding: utf-8
 import datetime
 from south.db import db
-from south.v2 import SchemaMigration
+from south.v2 import DataMigration
 from django.db import models
 
-class Migration(SchemaMigration):
+class Migration(DataMigration):
 
     def forwards(self, orm):
-        
-        # Adding model 'Image'
-        db.create_table('bee_image', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('image_url', self.gf('django.db.models.fields.CharField')(unique=True, max_length=200)),
-            ('width', self.gf('django.db.models.fields.IntegerField')()),
-            ('height', self.gf('django.db.models.fields.IntegerField')()),
-        ))
-        db.send_create_signal('bee', ['Image'])
+        "Write your forwards methods here."
+        site = orm['sites.Site'].objects.get(pk=1)
+        site.domain = 'localhost:8000'
+        site.name = 'localhost'
+        site.save()
 
-        # Adding model 'Identity'
-        db.create_table('bee_identity', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('identifier', self.gf('django.db.models.fields.CharField')(max_length=200)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'], null=True, blank=True)),
-        ))
-        db.send_create_signal('bee', ['Identity'])
-
-        # Adding model 'TrustGroup'
-        db.create_table('bee_trustgroup', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('tag', self.gf('django.db.models.fields.CharField')(unique=True, max_length=200)),
-            ('display_name', self.gf('django.db.models.fields.CharField')(max_length=200)),
-        ))
-        db.send_create_signal('bee', ['TrustGroup'])
-
-        # Adding M2M table for field members on 'TrustGroup'
-        db.create_table('bee_trustgroup_members', (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('trustgroup', models.ForeignKey(orm['bee.trustgroup'], null=False)),
-            ('identity', models.ForeignKey(orm['bee.identity'], null=False))
-        ))
-        db.create_unique('bee_trustgroup_members', ['trustgroup_id', 'identity_id'])
-
-        # Adding model 'Post'
-        db.create_table('bee_post', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('author', self.gf('django.db.models.fields.related.ForeignKey')(related_name='posts_authored', to=orm['auth.User'])),
-            ('avatar', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['bee.Image'], null=True, blank=True)),
-            ('title', self.gf('django.db.models.fields.CharField')(max_length=255, blank=True)),
-            ('html', self.gf('django.db.models.fields.TextField')(blank=True)),
-            ('slug', self.gf('django.db.models.fields.SlugField')(max_length=50, db_index=True)),
-            ('atom_id', self.gf('django.db.models.fields.CharField')(unique=True, max_length=255)),
-            ('created', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-            ('modified', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-        ))
-        db.send_create_signal('bee', ['Post'])
-
-        # Adding unique constraint on 'Post', fields ['author', 'slug']
-        db.create_unique('bee_post', ['author_id', 'slug'])
-
-        # Adding M2M table for field private_to on 'Post'
-        db.create_table('bee_post_private_to', (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('post', models.ForeignKey(orm['bee.post'], null=False)),
-            ('trustgroup', models.ForeignKey(orm['bee.trustgroup'], null=False))
-        ))
-        db.create_unique('bee_post_private_to', ['post_id', 'trustgroup_id'])
-
-        # Adding model 'AuthorSite'
-        db.create_table('bee_authorsite', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('author', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'], unique=True)),
-            ('site', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sites.Site'], unique=True)),
-        ))
-        db.send_create_signal('bee', ['AuthorSite'])
-
-        # Adding model 'Template'
-        db.create_table('bee_template', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('author', self.gf('django.db.models.fields.related.ForeignKey')(related_name='templates', to=orm['auth.User'])),
-            ('purpose', self.gf('django.db.models.fields.CharField')(max_length=20)),
-            ('text', self.gf('django.db.models.fields.TextField')(blank=True)),
-        ))
-        db.send_create_signal('bee', ['Template'])
-
-        # Adding unique constraint on 'Template', fields ['author', 'purpose']
-        db.create_unique('bee_template', ['author_id', 'purpose'])
+        user = orm['auth.User'].objects.get(pk=1)
+        orm.AuthorSite.objects.create(author=user, site=site)
 
 
     def backwards(self, orm):
-        
-        # Removing unique constraint on 'Template', fields ['author', 'purpose']
-        db.delete_unique('bee_template', ['author_id', 'purpose'])
+        "Write your backwards methods here."
+        site = orm['sites.Site'].objects.get(pk=1)
+        site.domain = site.name = 'example.com'
+        site.save()
 
-        # Removing unique constraint on 'Post', fields ['author', 'slug']
-        db.delete_unique('bee_post', ['author_id', 'slug'])
-
-        # Deleting model 'Image'
-        db.delete_table('bee_image')
-
-        # Deleting model 'Identity'
-        db.delete_table('bee_identity')
-
-        # Deleting model 'TrustGroup'
-        db.delete_table('bee_trustgroup')
-
-        # Removing M2M table for field members on 'TrustGroup'
-        db.delete_table('bee_trustgroup_members')
-
-        # Deleting model 'Post'
-        db.delete_table('bee_post')
-
-        # Removing M2M table for field private_to on 'Post'
-        db.delete_table('bee_post_private_to')
-
-        # Deleting model 'AuthorSite'
-        db.delete_table('bee_authorsite')
-
-        # Deleting model 'Template'
-        db.delete_table('bee_template')
+        user = orm['auth.User'].objects.get(pk=1)
+        orm.AuthorSite.objects.get(author=user, site=site).delete()
 
 
     models = {
@@ -190,11 +97,12 @@ class Migration(SchemaMigration):
             'text': ('django.db.models.fields.TextField', [], {'blank': 'True'})
         },
         'bee.trustgroup': {
-            'Meta': {'object_name': 'TrustGroup'},
+            'Meta': {'unique_together': "(('user', 'tag'),)", 'object_name': 'TrustGroup'},
             'display_name': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'members': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['bee.Identity']", 'symmetrical': 'False'}),
-            'tag': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '200'})
+            'tag': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']", 'null': 'True', 'blank': 'True'})
         },
         'contenttypes.contenttype': {
             'Meta': {'ordering': "('name',)", 'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},

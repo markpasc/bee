@@ -8,12 +8,12 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        orm.TrustGroup.objects.create(tag='private', display_name='Private (draft)')
+        orm.TrustGroup.objects.create(tag='public', display_name='Everyone')
 
 
     def backwards(self, orm):
         "Write your backwards methods here."
-        orm.TrustGroup.objects.filter(tag='private').delete()
+        orm.TrustGroup.objects.filter(tag='public').delete()
 
 
     models = {
@@ -66,15 +66,15 @@ class Migration(DataMigration):
             'width': ('django.db.models.fields.IntegerField', [], {})
         },
         'bee.post': {
-            'Meta': {'object_name': 'Post'},
-            'atom_id': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
+            'Meta': {'unique_together': "(('author', 'slug'),)", 'object_name': 'Post'},
+            'atom_id': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255'}),
             'author': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'posts_authored'", 'to': "orm['auth.User']"}),
             'avatar': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['bee.Image']", 'null': 'True', 'blank': 'True'}),
             'created': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'html': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'modified': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'private_to': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['bee.TrustGroup']", 'symmetrical': 'False'}),
+            'private_to': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['bee.TrustGroup']", 'symmetrical': 'False', 'blank': 'True'}),
             'slug': ('django.db.models.fields.SlugField', [], {'max_length': '50', 'db_index': 'True'}),
             'title': ('django.db.models.fields.CharField', [], {'max_length': '255', 'blank': 'True'})
         },

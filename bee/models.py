@@ -21,12 +21,16 @@ class Identity(models.Model):
 
 class TrustGroup(models.Model):
 
-    tag = models.CharField(max_length=200, unique=True)
+    user = models.ForeignKey('auth.User', blank=True, null=True)
+    tag = models.CharField(max_length=200)
     display_name = models.CharField(max_length=200)
     members = models.ManyToManyField(Identity)
 
     def __unicode__(self):
         return self.display_name
+
+    class Meta:
+        unique_together = (('user', 'tag'),)
 
 
 class Post(models.Model):

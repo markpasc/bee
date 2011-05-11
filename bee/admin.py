@@ -4,6 +4,7 @@ from bee.models import *
 
 
 admin.site.register(Image)
+admin.site.register(TrustGroup)
 
 
 class PostAdmin(admin.ModelAdmin):
