@@ -41,6 +41,11 @@ def permalink(request, slug, author=None):
     except Post.DoesNotExist:
         return HttpResponseNotFound('No such post %r' % slug)
 
+    if not post.visible_to(request.user):
+        logging.info("Author %s's post %s is not visible to viewer %r, pretending 404",
+            author.username, slug, request.user)
+        return HttpResponseNotFound('No such post %r' % slug)
+
     data = {
         'author': author,
         'post': post,

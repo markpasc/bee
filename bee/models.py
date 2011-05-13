@@ -44,12 +44,21 @@ class Post(models.Model):
     created = models.DateTimeField(default=datetime.now)
     modified = models.DateTimeField(default=datetime.now)
     # render_mode = ...
-
+    private = models.BooleanField(blank=True, default=True)
     private_to = models.ManyToManyField(TrustGroup, blank=True)
 
     @property
     def permalink(self):
         return 'http://%s/%s' % (self.author.authorsite_set.get().site.domain, self.slug)
+
+    def visible_to(self, user):
+        if not self.private:
+            return True
+        if not user.is_authenticated():
+            return False
+        if self.private_to.filter(members=user).exists():
+            return True
+        return False
 
     class Meta:
         unique_together = (('author', 'slug'),)
