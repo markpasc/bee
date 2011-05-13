@@ -13,8 +13,24 @@
 </div>
 
 <script type="text/javascript">
-    $('#entry-editor .entry-header').bind('keyup', function (e) {
-        $('#entry-slug').text($(this).text());
+    $('#entry-editor .entry-header').bind('keypress', function (e) {
+        if (e.which == 13)
+            return false;
+    }).bind('keyup', function (e) {
+        var $slug = $('#entry-slug');
+        if ($slug.data('edited'))
+            return;
+
+        var title = $(this).text();
+        var slug = title.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9\-]/g,'').replace(/--+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+        $slug.text(slug);
+    });
+
+    $('#entry-slug').bind('keypress', function (e) {
+        if (e.which != 45 && (e.which < 97 || 122 < e.which))
+            return false;
+
+        $(this).data('edited', true);
     });
 
     $('#editor-post-button').click(function (e) {
