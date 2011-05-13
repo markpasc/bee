@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 
 from django.db import models
 
@@ -51,13 +52,21 @@ class Post(models.Model):
     def permalink(self):
         return 'http://%s/%s' % (self.author.authorsite_set.get().site.domain, self.slug)
 
-    def visible_to(self, user):
+    def visible_to(self, viewer):
+        logging.debug("Is post %r visible to user %r?", self, viewer)
         if not self.private:
+            logging.debug("    Post is not private, so it's visible")
             return True
-        if not user.is_authenticated():
+        if not viewer.is_authenticated():
+            logging.debug("    Post is private but viewer is anonymous, so it's NOT visible")
             return False
-        if self.private_to.filter(members=user).exists():
+        if self.author.pk == viewer.pk:
+            logging.debug("    Post is private but viewer is the author, so it's visible")
             return True
+        if self.private_to.filter(members=viewer).exists():
+            logging.debug("    Post is private but it's shared to a group that contains the viewer, so it's visible")
+            return True
+        logging.debug("    Post is private and not shared to the viewer, so it's NOT visible")
         return False
 
     class Meta:
