@@ -26,10 +26,19 @@ def author_site(fn):
 
 @author_site
 def index(request, author=None):
-    posts = author.posts_authored.all()[:10]
+    # TODO: is there a better place to put this biz logic?
+    if request.user.is_anonymous():
+        posts = author.posts_authored.filter(private=False)
+    elif request.user.pk == author.pk:
+        posts = author.posts_authored.all()
+    else:
+        is_public = Q(private=False)
+        shared_with_user = Q(private_to__members__user=request.user)
+        posts = author.posts_authored.filter(is_public | shared_with_user)
+
     data = {
         'author': author,
-        'posts': posts,
+        'posts': posts[:10],
     }
 
     return render(request, 'index.html', data)
