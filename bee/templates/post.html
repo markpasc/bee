@@ -11,7 +11,10 @@
         {{ post.html|safe }}
     </div>
     <div class="entry-footer">
-        <span class="entry-timestamp">{{ post.created|date:"g:i" }} <small>{{ post.created|date:"A" }}</small></span>
-        <a href="{{ post.permalink }}">Permalink</a>
+        {% if post.private %}
+            <span>(Private)</span>
+        {% endif %}
+        <span class="entry-timestamp">{{ post.created|date:"g:i" }} <small>{{ post.created|date:"A" }}</small> {{ post.created|date:"j M Y" }}</span>
+        <span><a href="{{ post.permalink }}">Permalink</a></span>
     </div>
 </div>

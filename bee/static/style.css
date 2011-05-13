@@ -143,6 +143,10 @@ body {
 .entry-footer small {
     font-size: 80%;
 }
+.entry-footer span {
+    display: inline-block;
+    margin-right: 1em;
+}
 
 .chat-alice { color: #6ABB00; font-weight: bold }
 .chat-bob { color: #FF7800; font-weight: bold }
