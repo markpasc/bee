@@ -3,7 +3,9 @@
     <!-- author -->
     <div class="entry-content pkg" contenteditable="true"><p>content goes here</p></div>
     <div class="entry-footer">
-        <span>~timestamp~</span>
+        <span>
+            <input type="datetime-local" name="entry-published" id="entry-published">
+        </span>
         <span>Permalink: <span id="entry-slug" contenteditable="true">title</span></span>
         <span class="editor-buttons" style="display: inline-block; float: right;">
             <a id="editor-post-button" href="#" class="button button-green">Post</a>
@@ -13,6 +15,15 @@
 </div>
 
 <script type="text/javascript">
+    var $publ = $('#entry-published');
+    try { $publ.attr('type', 'datetime'); } catch(e) {}
+    if ($publ.attr('type') == 'text') {
+        alert('TEXT :|')
+    }
+    else {
+        alert('TYPE ' + $publ.attr('type') + ' :|')
+    }
+
     $('#entry-editor .entry-header').bind('keypress', function (e) {
         if (e.which == 13)
             return false;
