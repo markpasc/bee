@@ -40,7 +40,6 @@ def index(request, author=None):
         'author': author,
         'posts': posts[:10],
     }
-
     return render(request, 'index.html', data)
 
 
