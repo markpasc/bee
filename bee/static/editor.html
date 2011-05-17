@@ -4,7 +4,7 @@
     <div class="entry-content pkg" contenteditable="true"><p>content goes here</p></div>
     <div class="entry-footer">
         <span>
-            <span id="entry-published" data-now="yes" contenteditable="true"></span>
+            <span id="entry-published" data-now="yes" contenteditable="true">~timestamp~</span>
         </span>
         <span>Permalink: <span id="entry-slug" contenteditable="true">title</span></span>
         <span class="editor-buttons">
@@ -51,19 +51,32 @@
     });
 
     $('#editor-post-button').click(function (e) {
+        var data = {
+            //avatar: 
+            title: $('#entry-editor .entry-header').text(),
+            html: $('#entry-editor .entry-content').html(),
+            slug: $('#entry-slug').text(),
+            private: true
+            //private_to: 
+        };
+
+        var published = $('#entry-published').text();
+        var match = published.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})\s+([AP]M)/i);
+        if (match) {
+            var publishdate = new Date(match[1], match[2] - 1, match[3],
+                match[6].toLowerCase() == 'pm' ? match[4] + 12 : match[4], match[5], 0);
+            data['published'] = publishdate.toISOString();
+        }
+        else {
+            $('#entry-published').addClass('oops').focus();
+            return false;
+        }
+
         $.ajax({
             url: '/_/edit',
             type: 'POST',
             dataType: 'json',
-            data: {
-                //avatar: 
-                title: $('#entry-editor .entry-header').text(),
-                html: $('#entry-editor .entry-content').html(),
-                slug: $('#entry-slug').text(),
-                private: true
-                //private_to: 
-                //published: 
-            },
+            data: data,
             success: function (data, textStatus, xhr) {
                 window.location = data['permalink'];
             },

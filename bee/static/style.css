@@ -162,3 +162,6 @@ pre.wide { white-space: pre; }
     display: inline-block;
     float: right;
 }
+#entry-published.oops {
+    background: #fcc;
+}
