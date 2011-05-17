@@ -1,3 +1,4 @@
+from datetime import datetime
 from functools import wraps
 import json
 import logging
@@ -35,6 +36,8 @@ def index(request, author=None):
         is_public = Q(private=False)
         shared_with_user = Q(private_to__members__user=request.user)
         posts = author.posts_authored.filter(is_public | shared_with_user)
+
+    posts = posts.filter(published__lt=datetime.utcnow()).order_by('-published')
 
     data = {
         'author': author,
@@ -76,6 +79,7 @@ def edit(request, author=None):
     form = PostForm(request.POST, instance=post)
     if form.is_valid():
         post = form.save(commit=False)
+        # TODO: build this tag from the author's site domain
         post.atom_id = 'tag:butt:%d:%s' % (post.author.pk, post.slug)
         post.save()
 

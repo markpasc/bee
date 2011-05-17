@@ -42,8 +42,11 @@ class Post(models.Model):
     html = models.TextField(blank=True)
     slug = models.SlugField()
     atom_id = models.CharField(max_length=255, unique=True)  # even for different authors, should be unique
-    created = models.DateTimeField(default=datetime.now)
-    modified = models.DateTimeField(default=datetime.now)
+
+    created = models.DateTimeField(default=datetime.utcnow)
+    published = models.DateTimeField(default=datetime.utcnow)
+    modified = models.DateTimeField(default=datetime.utcnow)
+
     # render_mode = ...
     private = models.BooleanField(blank=True, default=True)
     private_to = models.ManyToManyField(TrustGroup, blank=True)
