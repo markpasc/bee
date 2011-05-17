@@ -44,8 +44,11 @@
     });
 
     $('#entry-slug').bind('keypress', function (e) {
-        if (e.which != 45 && (e.which < 97 || 122 < e.which))
+        if (e.which != 45                          // -
+            && (e.which < 48 || 57 < e.which)      // 0-9
+            && (e.which < 97 || 122 < e.which)) {  // a-z
             return false;
+        }
 
         $(this).data('edited', true);
     });
