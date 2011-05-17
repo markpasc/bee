@@ -17,7 +17,7 @@ $('#entry-editor .entry-header').bind('keypress', function (e) {
         return false;
 }).bind('keyup', function (e) {
     var $slug = $('#entry-slug');
-    if ($slug.data('edited'))
+    if (!$slug.attr('data-autotitle'))
         return;
 
     var title = $(this).text();
@@ -32,7 +32,7 @@ $('#entry-slug').bind('keypress', function (e) {
         return false;
     }
 
-    $(this).data('edited', true);
+    $(this).attr('data-autotitle', null);
 });
 
 $('#editor-post-button').click(function (e) {
