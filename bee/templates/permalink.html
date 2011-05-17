@@ -1,6 +1,34 @@
 {% extends "base.html" %}
 
-{% block htmltitle %}{{ author.first_name }}{% endblock %}
+{% block htmltitle %}{{ post.title }} &middot; {{ author.username }}{% endblock %}
+
+{% block controls %}
+    <a id="control-edit-post" class="button button-green" href="#">Edit post</a>
+
+    {{ block.super }}
+
+    <script type="text/javascript">
+        $('#control-edit-post').click(function () {
+            if ($('#entry-editor').size())
+                return false;
+
+            $.ajax({
+                url: '{% url editor %}',
+                data: { post: {{ post.pk }} },
+                dataType: 'html',
+                success: function(data, textStatus, xhr) {
+                    var $editor = $(data);
+                    var $firstEntry = $('#content .entry').first();
+                    $firstEntry.size() ? $firstEntry.before($editor) : $('#content').append($(data));
+                    $('#entry-editor .entry-header').focus();
+
+                    $firstEntry.hide();
+                }
+            });
+            return false;
+        });
+    </script>
+{% endblock %}
 
 {% block content %}
 

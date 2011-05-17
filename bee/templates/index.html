@@ -13,7 +13,7 @@
                 return false;
 
             $.ajax({
-                url: '{{ STATIC_URL }}editor.html',
+                url: '{% url editor %}',
                 dataType: 'html',
                 success: function(data, textStatus, xhr) {
                     var $editor = $(data);

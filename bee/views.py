@@ -15,11 +15,25 @@ def author_site(fn):
     @wraps(fn)
     def moo(request, *args, **kwargs):
         try:
-            print request.META['HTTP_HOST']
             author = User.objects.get(authorsite__site__domain=request.META['HTTP_HOST'])
         except User.DoesNotExist:
             return HttpResponseNotFound('No author selected')
         kwargs['author'] = author
+
+        return fn(request, *args, **kwargs)
+    return moo
+
+
+def author_only(fn):
+    @wraps(fn)
+    def moo(request, *args, **kwargs):
+        try:
+            author = kwargs['author']
+        except KeyError:
+            raise ValueError("View requires @author_only but is not for the @author_site")
+
+        if request.user.pk != author.pk:
+            return HttpResponseForbidden('Not your site!', content_type='text/plain')
 
         return fn(request, *args, **kwargs)
     return moo
@@ -67,10 +81,23 @@ def permalink(request, slug, author=None):
 
 
 @author_site
-def edit(request, author=None):
-    if request.user.pk != author.pk:
-        return HttpResponseForbidden('Not your site!')
+@author_only
+def editor(request, author=None):
+    data = {}
 
+    post_id = request.GET.get('post')
+    if post_id is not None:
+        post = Post.objects.get(pk=int(post_id))
+        if post.author.pk != author.pk:
+            return HttpResponseForbidden("Post %s is not your post" % post_id)
+        data['post'] = post
+
+    return render(request, 'editor.html', data)
+
+
+@author_site
+@author_only
+def edit(request, author=None):
     if 'id' in request.POST:
         post = Post.objects.get(pk=request.POST['id'])
     else:
