@@ -4,25 +4,31 @@
     <div class="entry-content pkg" contenteditable="true"><p>content goes here</p></div>
     <div class="entry-footer">
         <span>
-            <input type="datetime-local" name="entry-published" id="entry-published">
+            <span id="entry-published" data-now="yes" contenteditable="true"></span>
         </span>
         <span>Permalink: <span id="entry-slug" contenteditable="true">title</span></span>
-        <span class="editor-buttons" style="display: inline-block; float: right;">
+        <span class="editor-buttons">
             <a id="editor-post-button" href="#" class="button button-green">Post</a>
             <a href="#" class="button button-black">Discard</a>
         </span>
     </div>
 </div>
 
+<script type="text/javascript" src="/static/jquery.relatize_date.js"></script>
 <script type="text/javascript">
     var $publ = $('#entry-published');
-    try { $publ.attr('type', 'datetime'); } catch(e) {}
-    if ($publ.attr('type') == 'text') {
-        alert('TEXT :|')
+    function updatePublishedTimer() {
+        if ($publ.attr('data-now'))
+            $publ.text($.relatizeDate.strftime(new Date(), '%Y-%m-%d %I:%M %p'));
     }
-    else {
-        alert('TYPE ' + $publ.attr('type') + ' :|')
-    }
+    $(document).ready(function () {
+        updatePublishedTimer();
+        setInterval("updatePublishedTimer()", 60000);
+    });
+
+    $publ.bind('keypress', function (e) {
+        $(this).attr('data-now', null);
+    });
 
     $('#entry-editor .entry-header').bind('keypress', function (e) {
         if (e.which == 13)

@@ -157,4 +157,8 @@ pre, code, tt {
 pre { white-space: pre-wrap; overflow: auto; }
 pre.wide { white-space: pre; }
 
-*[contenteditable] { }
+/* entry editor */
+#entry-editor .editor-buttons {
+    display: inline-block;
+    float: right;
+}
