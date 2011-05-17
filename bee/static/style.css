@@ -158,9 +158,10 @@ pre { white-space: pre-wrap; overflow: auto; }
 pre.wide { white-space: pre; }
 
 /* entry editor */
-#entry-editor .editor-buttons {
+#entry-editor span.editor-buttons {
     display: inline-block;
     float: right;
+    margin-right: 0;
 }
 #entry-published.oops {
     background: #fcc;
