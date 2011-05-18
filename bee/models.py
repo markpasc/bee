@@ -22,7 +22,7 @@ class Identity(models.Model):
 
 class TrustGroup(models.Model):
 
-    user = models.ForeignKey('auth.User', blank=True, null=True)
+    user = models.ForeignKey('auth.User', related_name='trust_groups')
     tag = models.CharField(max_length=200)
     display_name = models.CharField(max_length=200)
     members = models.ManyToManyField(Identity)

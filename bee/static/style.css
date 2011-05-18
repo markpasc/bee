@@ -1,4 +1,6 @@
 @import url(http://fonts.googleapis.com/css?family=Inconsolata);
+@import url(smoothness/jquery-ui-1.8.12.custom.css);
+@import url(jquery.multiselect.css);
 
 /* 960.gs reset.css */
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outline:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -165,4 +167,17 @@ pre.wide { white-space: pre; }
 }
 #entry-published.oops {
     background: #fcc;
+}
+button.ui-multiselect {
+    font-size: 1em;
+}
+button.ui-multiselect, .ui-multiselect-menu {
+    font-family: 'Helvetica Neue',Arial,'Liberation Sans',FreeSans,sans-serif;
+}
+.entry-footer .ui-multiselect span, .entry-footer .ui-multiselect-menu span {
+    margin-right: 0;
+}
+.entry-footer .ui-multiselect-menu li {
+    margin-left: 0;
+    padding-left: 0;
 }

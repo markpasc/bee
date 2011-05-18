@@ -1,5 +1,5 @@
-var $publ = $('#entry-published');
 function updatePublishedTimer() {
+    var $publ = $('#entry-published');
     if ($publ.attr('data-now'))
         $publ.text($.relatizeDate.strftime(new Date(), '%Y-%m-%d %I:%M %p'));
 }
@@ -8,8 +8,19 @@ $(document).ready(function () {
     setInterval("updatePublishedTimer()", 60000);
 });
 
-$publ.bind('keypress', function (e) {
+$('#entry-published').bind('keypress', function (e) {
     $(this).attr('data-now', null);
+});
+
+$('#entry-trust').multiselect({
+    header: false,
+    selectedList: 4,
+    noneSelectedText: 'Private (draft)',
+    click: function(event, ui) {
+        if (ui.value == 'public' && ui.checked)
+            return;
+            //$('#entry-trust').multiselect('uncheckAll');
+    }
 });
 
 $('#entry-editor .entry-header').bind('keypress', function (e) {

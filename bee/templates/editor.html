@@ -1,3 +1,6 @@
+<script type="text/javascript" src="{{ STATIC_URL }}jquery-ui.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}jquery.multiselect.min.js"></script>
+
 <div id="entry-editor" class="entry">
     <h2 class="entry-header" contenteditable="true">{% if post %}{{ post.title }}{% else %}Title{% endif %}</h2>
     <!-- author -->
@@ -9,6 +12,14 @@
         {% endif %}
     </div>
     <div class="entry-footer">
+        <span>
+            <select multiple="multiple" name="entry-trust" id="entry-trust" size="5">
+                {% for group in user.trust_groups.all %}
+                    <option value="{{ group.pk }}">{{ group.name }}</option>
+                {% endfor %}
+                <option value="public">Public</option>
+            </select>
+        </span>
         <span>
             <span id="entry-published" {% if post %}{% else %}data-now="yes" {% endif %}contenteditable="true">{% if post %}{{ post.published|date:"Y-m-d g:i A" }}{% else %}~timestamp~{% endif %}</span>
         </span>
