@@ -1,7 +1,11 @@
 function updatePublishedTimer() {
     var $publ = $('#entry-published');
-    if ($publ.attr('data-now'))
-        $publ.text($.relatizeDate.strftime(new Date(), '%Y-%m-%d %I:%M %p'));
+    if ($publ.attr('data-now')) {
+        var now = new Date();
+        now.setSeconds(0);
+        now.setMilliseconds(0);
+        $publ.text(now.toISOString());
+    }
 }
 $(document).ready(function () {
     updatePublishedTimer();
@@ -52,21 +56,11 @@ $('#editor-post-button').click(function (e) {
         title: $('#entry-editor .entry-header').text(),
         html: $('#entry-editor .entry-content').html(),
         slug: $('#entry-slug').text(),
+        // TODO: use Date.toISOString() when we have a js date from a picker instead
+        published: $.trim($('#entry-published').text()),
         private: true
         //private_to: 
     };
-
-    var published = $('#entry-published').text();
-    var match = published.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})\s+([AP]M)/i);
-    if (match) {
-        var publishdate = new Date(match[1], match[2] - 1, match[3],
-            match[6].toLowerCase() == 'pm' ? match[4] + 12 : match[4], match[5], 0);
-        data['published'] = publishdate.toISOString();
-    }
-    else {
-        $('#entry-published').addClass('oops').focus();
-        return false;
-    }
 
     $.ajax({
         url: '/_/edit',
