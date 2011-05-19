@@ -15,7 +15,7 @@
         <span>
             <select multiple="multiple" name="entry-trust" id="entry-trust" size="5">
                 {% for group in user.trust_groups.all %}
-                    <option value="{{ group.pk }}">{{ group.name }}</option>
+                    <option value="{{ group.pk }}">{{ group.display_name }}</option>
                 {% endfor %}
                 <option value="public">Public</option>
             </select>
