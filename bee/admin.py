@@ -3,8 +3,15 @@ from django.contrib import admin
 from bee.models import *
 
 
-admin.site.register(Image)
 admin.site.register(TrustGroup)
+
+
+class AvatarAdmin(admin.ModelAdmin):
+    list_display = ('user', 'name', 'width', 'height')
+    list_display_links = ('user', 'name')
+    list_filter = ('user',)
+
+admin.site.register(Avatar, AvatarAdmin)
 
 
 class PostAdmin(admin.ModelAdmin):

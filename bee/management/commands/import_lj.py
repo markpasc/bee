@@ -1,3 +1,4 @@
+from base64 import b64decode
 from datetime import datetime
 from functools import partial
 from itertools import ifilterfalse
@@ -12,12 +13,13 @@ from xml.etree import ElementTree
 from BeautifulSoup import BeautifulSoup, NavigableString
 import django
 from django.contrib.auth.models import User
+from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 from django.template.defaultfilters import slugify, striptags
 from django.utils.text import truncate_words
 
 import bee.models
-from bee.models import Post
+from bee.models import Post, Avatar
 
 
 class Command(BaseCommand):
@@ -168,6 +170,20 @@ class Command(BaseCommand):
         if foafsource:
             self.import_foaf(foafsource, server_domain)
 
+        # Next import all my userpics.
+        avatars = dict()
+        for userpic in tree.findall('/userpics/user/userpic'):
+            keyword = userpic.get('keyword')
+            logging.debug("Importing userpic %r", keyword)
+            try:
+                avatar = Avatar.objects.get(user=post_author, name=keyword)
+            except Avatar.DoesNotExist:
+                data64 = userpic.text
+                data = b64decode(data64)
+                avatar = Avatar(user=post_author, name=keyword)
+                avatar.image.save(slugify(keyword) or 'userpic', ContentFile(data), save=True)
+            avatars[keyword] = avatar
+
         # Now update groups and friends, so we can knit the posts together right.
         group_objs = dict()
         for group in tree.findall('/friends/group'):
@@ -238,6 +254,10 @@ class Command(BaseCommand):
             # TODO: handle taglist prop
             post.html = str(content_root)
 
+            pic_keyword = event_props.get('picture_keyword')
+            if pic_keyword and pic_keyword in avatars:
+                post.avatar = avatars[pic_keyword]
+
             if not post.slug:
                 def gunk_slugs():
                     chars = string.letters + string.digits + string.digits
@@ -266,6 +286,9 @@ class Command(BaseCommand):
 
                 unused_slugs = ifilterfalse(is_slug_used, possible_slugs())
                 post.slug = unused_slugs.next()  # only need the first that's not used
+
+            # Pre-save the post in case we want to assign trust groups.
+            post.save()
 
             security = event.get('security')
             if security == 'private':

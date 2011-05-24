@@ -4,11 +4,17 @@ import logging
 from django.db import models
 
 
-class Image(models.Model):
+class Avatar(models.Model):
 
-    image_url = models.CharField(max_length=200, unique=True)
-    width = models.IntegerField()
-    height = models.IntegerField()
+    user = models.ForeignKey('auth.User', related_name='avatars')
+    name = models.CharField(max_length=200)
+    image = models.ImageField(upload_to=lambda inst, fn: 'avatars/%s/%s' % (inst.user.username, fn),
+        height_field='height', width_field='width')
+    width = models.PositiveIntegerField()
+    height = models.PositiveIntegerField()
+
+    def __unicode__(self):
+        return u'%s: %s' % (self.user.username, self.name)
 
 
 class Identity(models.Model):
@@ -37,7 +43,7 @@ class TrustGroup(models.Model):
 class Post(models.Model):
 
     author = models.ForeignKey('auth.User', related_name='posts_authored')
-    avatar = models.ForeignKey(Image, blank=True, null=True)
+    avatar = models.ForeignKey(Avatar, blank=True, null=True)
     title = models.CharField(max_length=255, blank=True)
     html = models.TextField(blank=True)
     slug = models.SlugField()
@@ -71,6 +77,9 @@ class Post(models.Model):
             return True
         logging.debug("    Post is private and not shared to the viewer, so it's NOT visible")
         return False
+
+    def __unicode__(self):
+        return self.title or self.slug
 
     class Meta:
         unique_together = (('author', 'slug'),)
