@@ -34,3 +34,6 @@ class TemplateAdmin(admin.ModelAdmin):
     list_display = ('author', 'purpose')
 
 admin.site.register(Template, TemplateAdmin)
+
+
+admin.site.register(Asset)

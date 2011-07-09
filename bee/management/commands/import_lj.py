@@ -4,6 +4,8 @@ from functools import partial
 from itertools import ifilterfalse
 import logging
 from optparse import make_option
+import os
+from os.path import join, basename, expanduser
 import random
 import re
 import string
@@ -13,13 +15,14 @@ from xml.etree import ElementTree
 from BeautifulSoup import BeautifulSoup, NavigableString
 import django
 from django.contrib.auth.models import User
+from django.core.files import File
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 from django.template.defaultfilters import slugify, striptags
 from django.utils.text import truncate_words
 
 import bee.models
-from bee.models import Post, Avatar
+from bee.models import Post, Avatar, Asset
 
 
 class Command(BaseCommand):
@@ -35,6 +38,12 @@ class Command(BaseCommand):
             help='The prefix of the Atom ID to store',
             default=None,
         ),
+        make_option('--images',
+            action='append',
+            dest='imagemap',
+            metavar='BASEURL=PATH',
+            help='When posts refer to images at BASEURL, import them from PATH on disk',
+        ),
     )
 
     def __init__(self, *args, **kwargs):
@@ -43,6 +52,7 @@ class Command(BaseCommand):
         self.foaf_pics = dict()
 
     def handle(self, source, **options):
+        self.imagemaps = dict((k, expanduser(v)) for k, v in (imageurl.split('=', 1) for imageurl in options['imagemap']))
         self.import_events(sys.stdin if source == '-' else source,
             options['atomid'], options['foaf'])
 
@@ -154,6 +164,33 @@ class Command(BaseCommand):
         for reply_el in comment_el.findall('comments/comment'):
             self.import_comment(reply_el, comment, openid_for)
 
+    def import_assets(self, content_root, author, post_created):
+        if not self.imagemaps:
+            return ()
+
+        assets = list()
+        for el in content_root.findAll('img'):
+            img_src = el.get('src')
+            matching_maps = [(map_url, map_path) for map_url, map_path in self.imagemaps.iteritems() if img_src.startswith(map_url)]
+            if not matching_maps:
+                continue
+            map_url, map_path = matching_maps[0]
+
+            img_path = join(map_path, img_src[len(map_url):])
+            if not os.access(img_path, os.R_OK):
+                logging.warn("Couldn't import asset for URL %s: file %s doesn't exist", img_src, img_path)
+                continue
+
+            with open(img_path, 'r') as f:
+                asset = Asset(author=author, created=post_created)
+                asset.sourcefile.save(basename(img_path), File(f), save=True)
+                assets.append(asset)
+
+                el['src'] = asset.sourcefile.url  # guess this is a property?
+                logging.debug("Importing asset for URL %s (will now be at %s)", img_src, el['src'])
+
+        return assets
+
     def import_events(self, source, atomid_prefix, foafsource):
         tree = ElementTree.parse(source)
 
@@ -252,6 +289,8 @@ class Command(BaseCommand):
             # TODO: handle opt_nocomments prop
             # TODO: put music and mood in the post content
             # TODO: handle taglist prop
+            assets = self.import_assets(content_root, post_author, post.published)
+
             post.html = str(content_root)
 
             pic_keyword = event_props.get('picture_keyword')
@@ -289,6 +328,9 @@ class Command(BaseCommand):
 
             # Pre-save the post in case we want to assign trust groups.
             post.save()
+
+            for asset in assets:
+                asset.posts.add(post)
 
             security = event.get('security')
             if security == 'private':

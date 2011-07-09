@@ -85,6 +85,19 @@ class Post(models.Model):
         unique_together = (('author', 'slug'),)
 
 
+class Asset(models.Model):
+
+    def _upload_to(instance, filename):
+        created = instance.created or datetime.utcnow()
+        path = created.strftime('assets/%Y/%m/%%s')
+        return path % (filename,)
+
+    sourcefile = models.FileField(upload_to=_upload_to)
+    created = models.DateTimeField(default=datetime.utcnow)
+    author = models.ForeignKey('auth.User', related_name='assets_authored')
+    posts = models.ManyToManyField(Post, blank=True)
+
+
 # TODO: is this really a siteinfo? with site's display name?
 class AuthorSite(models.Model):
 
