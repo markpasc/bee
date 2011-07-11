@@ -150,7 +150,7 @@ class Command(BaseCommand):
                 continue
             asset_id = mo.group('asset_id')
 
-            for ext in ('gif', 'jpg'):
+            for ext in ('gif', 'jpg', 'png'):
                 img_path = join(self.sourcepath, 'assets', asset_id + '-pi.' + ext)
                 if not os.access(img_path, os.R_OK):
                     logging.warn("Couldn't import asset for URL %s: file %s doesn't exist", img_src, img_path)
