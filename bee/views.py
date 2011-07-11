@@ -107,7 +107,7 @@ def edit(request, author=None):
     if form.is_valid():
         post = form.save(commit=False)
         # TODO: build this tag from the author's site domain
-        post.atom_id = 'tag:butt:%d:%s' % (post.author.pk, post.slug)
+        post.atom_id = 'tag:bestendtimesever.com,2009:%s,%s' % (post.author.username, post.slug)
         post.save()
 
         return HttpResponse(json.dumps({'id': post.pk, 'permalink': post.permalink}))
