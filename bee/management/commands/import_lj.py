@@ -12,20 +12,19 @@ import string
 import sys
 from xml.etree import ElementTree
 
-from BeautifulSoup import BeautifulSoup, NavigableString
+from BeautifulSoup import BeautifulSoup
 import django
 from django.contrib.auth.models import User
-from django.core.files import File
 from django.core.files.base import ContentFile
-from django.core.management.base import BaseCommand, CommandError
 from django.template.defaultfilters import slugify, striptags
 from django.utils.text import truncate_words
 
+from bee.management.import_command import ImportCommand
 import bee.models
 from bee.models import Post, Avatar, Asset
 
 
-class Command(BaseCommand):
+class Command(ImportCommand):
 
     args = '<export file>'
     help = 'Import posts from a livejournal XML export.'
@@ -164,32 +163,19 @@ class Command(BaseCommand):
         for reply_el in comment_el.findall('comments/comment'):
             self.import_comment(reply_el, comment, openid_for)
 
-    def import_assets(self, content_root, author, post_created):
+    def filename_for_image_url(self, image_url):
+        matching_maps = [(map_url, map_path) for map_url, map_path in self.imagemaps.iteritems() if image_url.startswith(map_url)]
+        if not matching_maps:
+            continue
+        map_url, map_path = matching_maps[0]
+        img_path = join(map_path, img_src[len(map_url):])
+
+        return img_path
+
+    def import_images_for_post_html(self, post):
         if not self.imagemaps:
-            return ()
-
-        assets = list()
-        for el in content_root.findAll('img'):
-            img_src = el.get('src')
-            matching_maps = [(map_url, map_path) for map_url, map_path in self.imagemaps.iteritems() if img_src.startswith(map_url)]
-            if not matching_maps:
-                continue
-            map_url, map_path = matching_maps[0]
-
-            img_path = join(map_path, img_src[len(map_url):])
-            if not os.access(img_path, os.R_OK):
-                logging.warn("Couldn't import asset for URL %s: file %s doesn't exist", img_src, img_path)
-                continue
-
-            with open(img_path, 'r') as f:
-                asset = Asset(author=author, created=post_created)
-                asset.sourcefile.save(basename(img_path), File(f), save=True)
-                assets.append(asset)
-
-                el['src'] = asset.sourcefile.url  # guess this is a property?
-                logging.debug("Importing asset for URL %s (will now be at %s)", img_src, el['src'])
-
-        return assets
+            return post.html, ()
+        return super(Command, self).import_images_for_post_html(post)
 
     def import_events(self, source, atomid_prefix, foafsource):
         tree = ElementTree.parse(source)
@@ -289,42 +275,22 @@ class Command(BaseCommand):
             # TODO: handle opt_nocomments prop
             # TODO: put music and mood in the post content
             # TODO: handle taglist prop
-            assets = self.import_assets(content_root, post_author, post.published)
 
             post.html = str(content_root)
+            post.html, assets = self.import_images_for_post_html(post)
 
             pic_keyword = event_props.get('picture_keyword')
             if pic_keyword and pic_keyword in avatars:
                 post.avatar = avatars[pic_keyword]
 
             if not post.slug:
-                def gunk_slugs():
-                    chars = string.letters + string.digits + string.digits
-                    while True:
-                        gunk = ''.join(random.choice(chars) for i in range(7))
-                        yield gunk
-
                 def possible_slugs():
-                    slug_source = post.title
-                    if not slug_source:
-                        post_text = striptags(post.html)
-                        slug_source = truncate_words(post_text, 7, end_text='')
-                    if not slug_source:
-                        for gunk in gunk_slugs():
-                            yield gunk
-                    yield slugify(slug_source)
-                    for gunk in gunk_slugs():
-                        possible_unique = u'%s %s' % (slug_source, gunk)
-                        yield slugify(possible_unique)
+                    yield post.title
+                    post_text = striptags(post.html)
+                    slug_source = truncate_words(post_text, 7, end_text='')
+                    yield slug_source
 
-                other_posts = post.author.posts_authored.all()
-                if post.id:
-                    other_posts = other_posts.exclude(id=post.id)
-                def is_slug_used(slug):
-                    return other_posts.filter(slug=slug).exists()
-
-                unused_slugs = ifilterfalse(is_slug_used, possible_slugs())
-                post.slug = unused_slugs.next()  # only need the first that's not used
+                post.slug = self.unused_slug_for_post(post, possible_slugs())
 
             # Pre-save the post in case we want to assign trust groups.
             post.save()

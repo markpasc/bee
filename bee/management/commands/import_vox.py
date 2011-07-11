@@ -17,10 +17,11 @@ from django.core.management.base import BaseCommand, CommandError
 from django.template.defaultfilters import slugify, striptags
 from django.utils.text import truncate_words
 
+from bee.management.import_command import ImportCommand
 import bee.models
 
 
-class Command(BaseCommand):
+class Command(ImportCommand):
 
     args = '<export file>'
     help = 'Import posts from a Vox XML export.'
@@ -98,73 +99,36 @@ class Command(BaseCommand):
             asset.author = self.person_for_openid(openid, author_name).user
 
         if not asset.slug:
-            atom_links = asset_el.findall('{http://www.w3.org/2005/Atom}link')
-            permalinks = [el for el in atom_links if el.get('rel') == 'alternate' and el.get('type') == 'text/html']
-            if not permalinks:
-                raise ValueError("Could not find text/html alternate link for post %r" % atom_id)
-            vox_url = permalinks[0].get('href')
-            mo = re.search(r'/(?P<slug>[^/\.]+)\.html', vox_url)
-            if mo is None:
-                raise ValueError("Could not find slug in Vox post URL %r" % vox_url)
-            vox_slug = mo.group('slug')
-
-            def gunk_slugs():
-                chars = string.letters + string.digits + string.digits
-                while True:
-                    gunk = ''.join(random.choice(chars) for i in range(7))
-                    yield gunk
-
             def possible_slugs():
-                slug_source = vox_slug  # should always have one?
-                if not slug_source:
-                    slug_source = asset.title
-                if not slug_source:
-                    post_text = striptags(asset.html)
-                    slug_source = truncate_words(post_test, 7, end_text='')
-                if not slug_source:
-                    for gunk in gunk_slugs():
-                        yield gunk
-                yield slugify(slug_source)
-                for gunk in gunk_slugs():
-                    possible_unique = '%s %s' % (slug_source, gunk)
-                    yield slugify(possible_unique)
+                atom_links = asset_el.findall('{http://www.w3.org/2005/Atom}link')
+                permalinks = [el for el in atom_links if el.get('rel') == 'alternate' and el.get('type') == 'text/html']
+                if not permalinks:
+                    raise ValueError("Could not find text/html alternate link for post %r" % atom_id)
+                vox_url = permalinks[0].get('href')
+                mo = re.search(r'/(?P<slug>[^/\.]+)\.html', vox_url)
+                if mo is None:
+                    raise ValueError("Could not find slug in Vox post URL %r" % vox_url)
+                vox_slug = mo.group('slug')
+                yield vox_slug  # should always be?
+                yield asset.title
+                yield truncate_words(striptags(asset.html), 7, end_text='')
 
-            other_posts = asset.author.posts_authored.all()
-            if asset.id:
-                other_posts = other_posts.exclude(id=asset.id)
-            def is_slug_used(slug):
-                return other_posts.filter(slug=slug).exists()
-
-            unused_slugs = ifilterfalse(is_slug_used, possible_slugs())
-            asset.slug = unused_slugs.next()  # only need the first unused
+            asset.slug = self.unused_slug_for_post(asset, possible_slugs())
 
         return asset
 
-    def import_image_assets(self, content_root, author, post_created):
-        assets = list()
+    def filename_for_image_url(self, image_url):
+        mo = re.match(r'http://a\d+\.vox\.com/(?P<asset_id>6a\w+)', image_url)
+        if mo is None:
+            return
+        asset_id = mo.group('asset_id')
 
-        for el in content_root.findAll('img'):
-            img_src = el.get('src')
-            mo = re.match(r'http://a\d+\.vox\.com/(?P<asset_id>6a\w+)', img_src)
-            if mo is None:
-                continue
-            asset_id = mo.group('asset_id')
+        for ext in ('gif', 'jpg', 'png'):
+            img_path = join(self.sourcepath, 'assets', asset_id + '-pi.' + ext)
+            if os.access(img_path, os.R_OK):
+                return img_path
 
-            for ext in ('gif', 'jpg', 'png'):
-                img_path = join(self.sourcepath, 'assets', asset_id + '-pi.' + ext)
-                if not os.access(img_path, os.R_OK):
-                    logging.warn("Couldn't import asset for URL %s: file %s doesn't exist", img_src, img_path)
-                    continue
-
-                with open(img_path, 'r') as f:
-                    asset = bee.models.Asset(author=author, created=post_created)
-                    asset.sourcefile.save(basename(img_path), File(f), save=True)
-                    assets.append(asset)
-
-                    el['src'] = asset.sourcefile.url  # guess this is a property?
-                    logging.debug("Importing asset for URL %s (will now be at %s)", img_src, el['src'])
-
-        return assets
+        return
 
     def import_assets(self, tree):
         groups = dict()
@@ -186,9 +150,7 @@ class Command(BaseCommand):
             asset = self.basic_asset_for_element(asset_el)
             asset.title = asset_el.findtext('{http://www.w3.org/2005/Atom}title')
 
-            content_root = BeautifulSoup(asset.html)
-            image_assets = self.import_image_assets(content_root, asset.author, asset.published)
-            asset.html = str(content_root)
+            asset.html, image_assets = self.import_images_for_post_html(asset)
 
             logging.info("Saving asset with author ID %d and slug '%s'", asset.author_id, asset.slug)
             asset.save()
@@ -251,7 +213,3 @@ class Command(BaseCommand):
             asset.save()
 
             asset.private_to = parent_asset.private_to.all()
-
-
-if __name__ == '__main__':
-    sys.exit(main())
