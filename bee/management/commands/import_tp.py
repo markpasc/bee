@@ -78,12 +78,12 @@ class Command(ImportCommand):
         post.title = obj['title']
         post.slug = self.unused_slug_for_post(post, (obj['filename'],))
         post.html = obj['renderedContent']
-
         post.html, assets = self.import_images_for_post_html(post)
 
+        # Everything's public hwhee!
+        post.private = False
         post.save()
         logging.info('Saved new asset %s (%s) as #%d', post.atom_id, post.title, post.pk)
-        # Everything's public hwhee!
 
         for asset in assets:
             asset.posts.add(post)

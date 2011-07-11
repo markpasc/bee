@@ -53,13 +53,13 @@ class Command(ImportCommand):
         post.title = post_data['title']
         post.slug = self.unused_slug_for_post(post, (post_data['slug'],))
         post.html = post_data['content_html']
-
         post.html, assets = self.import_images_for_post_html(post)
+
+        # All posts were public, so no trust groups to mess with.
+        post.private = False
 
         post.save()
         logging.info('Saved new asset %s (%s) as #%d', post.atom_id, post.title, post.pk)
-
-        # All posts were public, so no trust groups to mess with.
 
         for asset in assets:
             asset.posts.add(post)
