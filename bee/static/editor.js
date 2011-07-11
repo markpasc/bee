@@ -58,9 +58,19 @@ $('#editor-post-button').click(function (e) {
         slug: $('#entry-slug').text(),
         // TODO: use Date.toISOString() when we have a js date from a picker instead
         published: $.trim($('#entry-published').text()),
-        private: true
-        //private_to: 
+        private: true,
+        private_to: []
     };
+
+    var trust = $('#entry-trust').val();
+    $.each(trust, function (key, value) {
+        if (value == 'public') {
+            data['private'] = false;
+            data['private_to'] = [];
+            return false;
+        }
+        data['private_to'].push(value);
+    });
 
     if ($('#entry-editor #entry-id').size()) {
         data['id'] = $('#entry-editor #entry-id').val();
