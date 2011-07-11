@@ -62,6 +62,10 @@ $('#editor-post-button').click(function (e) {
         //private_to: 
     };
 
+    if ($('#entry-editor #entry-id').size()) {
+        data['id'] = $('#entry-editor #entry-id').val();
+    }
+
     $.ajax({
         url: '/_/edit',
         type: 'POST',

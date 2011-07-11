@@ -2,6 +2,9 @@
 <script type="text/javascript" src="{{ STATIC_URL }}jquery.multiselect.min.js"></script>
 
 <div id="entry-editor" class="entry">
+    {% if post %}
+        <input type="hidden" name="entry-id" id="entry-id" value="{{ post.pk }}">
+    {% endif %}
     <h2 class="entry-header" contenteditable="true">{% if post %}{{ post.title }}{% else %}Title{% endif %}</h2>
     <!-- author -->
     <div class="entry-content pkg" contenteditable="true">
@@ -21,7 +24,7 @@
             </select>
         </span>
         <span>
-            <span id="entry-published" {% if post %}{% else %}data-now="yes" {% endif %}contenteditable="true">{% if post %}{{ post.published|date:"Y-m-d g:i A" }}{% else %}~timestamp~{% endif %}</span>
+            <span id="entry-published" {% if post %}{% else %}data-now="yes" {% endif %}contenteditable="true">{% if post %}{{ post.published|date:"Y-m-d" }}T{{ post.published|date:"H:i:s" }}Z{% else %}~timestamp~{% endif %}</span>
         </span>
         <span>Permalink: <span id="entry-slug" {% if post %}{% else %}data-autotitle="true" {% endif %}contenteditable="true">{% if post %}{{ post.slug }}{% else %}title{% endif %}</span></span>
         <span class="editor-buttons">
