@@ -20,9 +20,10 @@ class IsoDateTimeField(forms.Field):
             return val
 
         try:
-            return iso8601.parse_date(val)
+            iso_date = iso8601.parse_date(val)
         except ValueError, err:
             raise forms.ValidationError(*err.args)
+        return iso_date.astimezone(iso8601.iso8601.Utc()).replace(tzinfo=None)
 
 
 class PostForm(forms.ModelForm):
