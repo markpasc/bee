@@ -66,6 +66,16 @@ def index(request, author=None):
     return render(request, 'index.html', data)
 
 
+class RealAtomFeed(feedgenerator.Atom1Feed):
+
+    def add_item_elements(self, handler, item):
+        super(RealAtomFeed, self).add_item_elements(handler, item)
+
+        created_date = item.get('createddate', item.get('pubdate'))
+        if created_date is not None:
+            handler.addQuickElement(u'published', feedgenerator.rfc3339_date(created_date).decode('utf-8'))
+
+
 @author_site
 def feed(request, author=None):
     author_name = ' '.join(filter(None, (author.first_name, author.last_name)))
@@ -73,7 +83,7 @@ def feed(request, author=None):
     # TODO: use the author's site instead of hardcoding for me?
     feed_id = 'tag:bestendtimesever.com,2009:%s' % author.username
 
-    feed = feedgenerator.Atom1Feed(title=author.username, link=index_url, description='',
+    feed = RealAtomFeed(title=author.username, link=index_url, description='',
         author_email=author.email, author_name=author_name, author_link=index_url,
         feed_url=request.build_absolute_uri(), feed_guid=feed_id)
 
@@ -84,7 +94,7 @@ def feed(request, author=None):
     for post in posts:
         post_url = request.build_absolute_uri(reverse('permalink', kwargs={'slug': post.slug}))
         feed.add_item(title=post.title, link=post_url, description=post.html,
-            pubdate=post.published, unique_id=post.atom_id)
+            pubdate=post.modified, unique_id=post.atom_id, createddate=post.published)
 
     return HttpResponse(feed.writeString('utf-8'), content_type='application/atom+xml')
 
