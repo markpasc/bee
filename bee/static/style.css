@@ -104,6 +104,17 @@ body {
     text-decoration: underline;
 }
 
+.entry-content {
+    position: relative;
+}
+
+.entry-content blockquote, .entry-content div.highlight {
+    margin: 1ex 2.5em;
+}
+.entry-content blockquote blockquote {
+    font-style: oblique;
+}
+
 .entry-content blockquote:before, .entry-content div.highlight:before,
 .entry-content blockquote:after, .entry-content div.highlight:after {
     display: inline-block;
@@ -121,6 +132,9 @@ body {
     right: 0;
     content: "”";
     margin-top: -20px;
+}
+.entry-content blockquote blockquote:before, .entry-content blockquote blockquote:after {
+    content: "";
 }
 
 .entry-content blockquote p {
