@@ -2,6 +2,7 @@ from datetime import datetime
 import logging
 
 from django.db import models
+from taggit.managers import TaggableManager
 
 
 class Avatar(models.Model):
@@ -56,6 +57,8 @@ class Post(models.Model):
     # render_mode = ...
     private = models.BooleanField(blank=True, default=True)
     private_to = models.ManyToManyField(TrustGroup, blank=True)
+
+    tags = TaggableManager()
 
     @property
     def permalink(self):

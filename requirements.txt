@@ -1,0 +1,5 @@
+iso8601
+Django
+south
+sentry
+django-taggit
