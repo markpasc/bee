@@ -1,5 +1,7 @@
 <div class="entry" id="entry-{{ post.atom_id|slugify }}">
+    {% if post.title %}
     <h2 class="entry-header"><a href="{{ post.permalink }}">{{ post.title }}</a></h2>
+    {% endif %}
 
     {% if post.avatar %}
         <span class="entry-author">
