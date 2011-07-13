@@ -4,8 +4,10 @@ import json
 import logging
 
 from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseNotFound
 from django.shortcuts import render
+from django.utils import feedgenerator
 
 from bee.models import Post, Template
 from bee.forms import PostForm
@@ -39,18 +41,22 @@ def author_only(fn):
     return moo
 
 
+def posts_for_request(request, author):
+    if request.user.is_anonymous():
+        return author.posts_authored.filter(private=False)
+
+    if request.user.pk == author.pk:
+        return author.posts_authored.all()
+
+    is_public = Q(private=False)
+    shared_with_user = Q(private_to__members__user=request.user)
+    return author.posts_authored.filter(is_public | shared_with_user)
+
+
 @author_site
 def index(request, author=None):
     # TODO: is there a better place to put this biz logic?
-    if request.user.is_anonymous():
-        posts = author.posts_authored.filter(private=False)
-    elif request.user.pk == author.pk:
-        posts = author.posts_authored.all()
-    else:
-        is_public = Q(private=False)
-        shared_with_user = Q(private_to__members__user=request.user)
-        posts = author.posts_authored.filter(is_public | shared_with_user)
-
+    posts = posts_for_request(request, author)
     posts = posts.filter(published__lt=datetime.utcnow()).order_by('-published')
 
     data = {
@@ -58,6 +64,29 @@ def index(request, author=None):
         'posts': posts[:10],
     }
     return render(request, 'index.html', data)
+
+
+@author_site
+def feed(request, author=None):
+    author_name = ' '.join(filter(None, (author.first_name, author.last_name)))
+    index_url = request.build_absolute_uri(reverse('index'))
+    # TODO: use the author's site instead of hardcoding for me?
+    feed_id = 'tag:bestendtimesever.com,2009:%s' % author.username
+
+    feed = feedgenerator.Atom1Feed(title=author.username, link=index_url, description='',
+        author_email=author.email, author_name=author_name, author_link=index_url,
+        feed_url=request.build_absolute_uri(), feed_guid=feed_id)
+
+    posts = posts_for_request(request, author)
+    posts = posts.filter(published__lt=datetime.utcnow()).order_by('-published')
+    posts = posts[:20]
+
+    for post in posts:
+        post_url = request.build_absolute_uri(reverse('permalink', kwargs={'slug': post.slug}))
+        feed.add_item(title=post.title, link=post_url, description=post.html,
+            pubdate=post.published, unique_id=post.atom_id)
+
+    return HttpResponse(feed.writeString('utf-8'), content_type='application/atom+xml')
 
 
 @author_site
