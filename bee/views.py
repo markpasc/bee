@@ -102,7 +102,7 @@ def feed(request, author=None):
             unique_id=post.atom_id, updated=post.modified, published=post.published,
             content_html=post.html)
 
-    return HttpResponse(feed.writeString('utf-8'), content_type='application/atom+xml')
+    return HttpResponse(feed.writeString('utf-8'), content_type=feed.mime_type)
 
 
 @author_site
