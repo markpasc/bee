@@ -1,34 +1,44 @@
 {% extends 'base.html' %}
 
-{% block content %}
-    <h2>Search</h2>
+{% block htmltitle %}{% if query %}"{{ query }}"{% else %}Search{% endif %} &middot; {{ author.username }}{% endblock %}
 
-    <form method="get" action=".">
-        <div>
-            {{ form.as_p }}
-            <input type="submit" value="Search">
-        </div>
+{% block controls %}
 
-        {% if query %}
-            <h3>Results</h3>
-
-            {% for result in page.object_list %}
-                <p>
-                    <a href="{% url permalink slug=result.object.slug %}">{{ result.object.title }}</a>
-                </p>
-            {% empty %}
-                <p>No results found.</p>
-            {% endfor %}
-
-            {% if page.has_previous or page.has_next %}
-                <div>
-                    {% if page.has_previous %}<a href="?q={{ query }}&amp;page={{ page.previous_page_number }}">{% endif %}&laquo; Previous{% if page.has_previous %}</a>{% endif %}
-                    |
-                    {% if page.has_next %}<a href="?q={{ query }}&amp;page={{ page.next_page_number }}">{% endif %}Next &raquo;{% if page.has_next %}</a>{% endif %}
-                </div>
-            {% endif %}
-        {% else %}
-            {# Show some example queries to run, maybe query syntax, something else? #}
-        {% endif %}
+    <form id="search-form" method="get" action=".">
+        {{ form.q.errors }}
+        {{ form.q }}
     </form>
+
+    {{ block.super }}
+
+{% endblock %}
+
+{% block content %}
+
+    {% if query %}
+        {% for result in page.object_list %}
+            {{ result.result|safe }}
+        {% empty %}
+            <p>No results found.</p>
+        {% endfor %}
+
+        {% if page.has_previous or page.has_next %}
+            <div class="pager-bottom pager">
+                {% if page.has_previous %}
+                    <span class="pager-left">
+                        <a href="?q={{ query }}&amp;page={{ page.previous_page_number }}"><span class="chevron">&laquo;</span> <span class="pager-label">Fewer</span></a>
+                    </span>
+                {% endif %}
+                {% if page.has_previous and page.has_next %}
+                    <span class="separator">|</span>
+                {% endif %}
+                {% if page.has_next %}
+                    <span class="pager-right">
+                        <a href="?q={{ query }}&amp;page={{ page.next_page_number }}"><span class="pager-label">More</span> <span class="chevron">&raquo;</span></a>
+                    </span>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% endif %}
+
 {% endblock %}

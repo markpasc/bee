@@ -94,14 +94,40 @@ body {
 }
 
 .pager a:link, .pager a:hover, .pager a:visited, .pager a:active, .pager a:focus,
+a.arrow:link,
 .entry-header a:link, .entry-header a:hover, .entry-header a:visited, .entry-header a:active, .entry-header a:focus {
     background-color: transparent;
     border-width: 0;
-    color: inherit;
     text-decoration: none;
 }
-.entry-header a:hover {
+.entry-header a:link, .entry-header a:hover, .entry-header a:visited, .entry-header a:active, .entry-header a:focus {
+    color: inherit;
+}
+.entry-header a:hover, a.arrow:hover {
     text-decoration: underline;
+}
+
+.pager {  /* also a .content-nav */
+    position: relative;
+    visibility: visible;
+    margin: 40px 0 0 0;
+    text-align: center;
+}
+.pager .separator {
+    display: inline-block;
+    visibility: hidden;
+    width: 4em;
+}
+.pager .chevron {
+    font-size: 1.5em;
+}
+.pager .pager-label {
+    text-decoration: underline;
+}
+
+#search-form {
+    display: inline-block;
+    float: left;
 }
 
 .entry-content {

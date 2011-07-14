@@ -1,6 +1,9 @@
 from datetime import datetime
 
 from django import forms
+import django.forms.widgets
+from django.utils.translation import ugettext_lazy as _
+import haystack.forms
 import iso8601
 
 from bee.models import Post
@@ -33,3 +36,13 @@ class PostForm(forms.ModelForm):
     class Meta:
         model = Post
         exclude = ('author', 'atom_id', 'created', 'modified')
+
+
+class SearchInput(django.forms.widgets.Input):
+
+    input_type = 'search'
+
+
+class SearchForm(haystack.forms.SearchForm):
+
+    q = forms.CharField(required=True, label=_('Search'), widget=SearchInput(attrs={'placeholder': 'Search'}))

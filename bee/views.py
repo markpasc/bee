@@ -12,7 +12,7 @@ from haystack.query import SearchQuerySet
 import haystack.views
 
 from bee.models import Post, Template
-from bee.forms import PostForm
+from bee.forms import PostForm, SearchForm
 
 
 def author_site(fn):
@@ -115,21 +115,22 @@ class PostSearch(haystack.views.SearchView):
 
         log.debug("which author has domain %r?", request.META['HTTP_HOST'])
         try:
-            author = User.objects.get(authorsite__site__domain=request.META['HTTP_HOST'])
+            self.author = User.objects.get(authorsite__site__domain=request.META['HTTP_HOST'])
         except User.DoesNotExist:
             log.debug("    no such author! no results at all!")
+            self.author = None
             sqs = SearchQuerySet().none()
         else:
-            sqs = SearchQuerySet().filter(author_pk=author.pk)
+            sqs = SearchQuerySet().filter(author_pk=self.author.pk)
             # What visibility of posts can the searcher see?
             if request.user.is_anonymous():
-                log.debug("    viewer is anonymous, so only %s's public posts", author.username)
+                log.debug("    viewer is anonymous, so only %s's public posts", self.author.username)
                 sqs = sqs.filter(private=0)
-            elif request.user.pk == author.pk:
-                log.debug("    viewer is %s, so all their posts", author.username)
+            elif request.user.pk == self.author.pk:
+                log.debug("    viewer is %s, so all their posts", self.author.username)
             else:
                 # TODO: honor trust groups instead of giving everyone else only public posts
-                log.debug("    viewer is logged in as somebody else, so only %s's public posts", author.username)
+                log.debug("    viewer is logged in as somebody else, so only %s's public posts", self.author.username)
                 sqs = sqs.filter(private=0)
 
         self.searchqueryset = sqs
@@ -137,7 +138,11 @@ class PostSearch(haystack.views.SearchView):
         return super(PostSearch, self).build_form(form_kwargs)
 
 
-search = PostSearch()
+    def extra_context(self):
+        return {'author': self.author}
+
+
+search = PostSearch(form_class=SearchForm)
 
 
 @author_site

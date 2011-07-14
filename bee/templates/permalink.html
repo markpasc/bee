@@ -3,9 +3,8 @@
 {% block htmltitle %}{{ post.title }} &middot; {{ author.username }}{% endblock %}
 
 {% block controls %}
+    {% if not user.is_anonymous %}
     <a id="control-edit-post" class="button button-green" href="#">Edit post</a>
-
-    {{ block.super }}
 
     <script type="text/javascript">
         $('#control-edit-post').click(function () {
@@ -28,6 +27,10 @@
             return false;
         });
     </script>
+    {% endif %}
+
+    {{ block.super }}
+
 {% endblock %}
 
 {% block content %}

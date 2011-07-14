@@ -1,0 +1,30 @@
+{% with object as post %}
+<div class="entry" id="entry-{{ post.atom_id|slugify }}">
+    {% if post.title %}
+    <h2 class="entry-result">
+        <a href="{{ post.permalink }}">{{ post.title }}</a>
+        <a href="{{ post.permalink }}" class="arrow">&#10148;</a>
+    </h2>
+    {% endif %}
+
+    {% if post.avatar %}
+        <span class="entry-author">
+            <a title="{{ post.author.username }}" href="{{ post.author.permalink }}"><img src="{{ post.avatar.image.url }}" width="{{ post.avatar.width }}" height="{{ post.avatar.height }}"></a>
+        </span>
+    {% endif %}
+
+    <div class="entry-content pkg">
+        {{ post.html|striptags|truncatewords:30 }}
+    </div>
+    <div class="entry-footer">
+        {% if post.private %}
+            <span>(Private)</span>
+        {% endif %}
+        <span class="entry-timestamp">{{ post.published|date:"g:i" }} <small>{{ post.published|date:"A" }}</small> {{ post.published|date:"j M Y" }}</span>
+        <span>
+            <a href="{{ post.permalink }}">View post</a>
+            <a href="{{ post.permalink }}" class="arrow">&#10148;</a>
+        </span>
+    </div>
+</div>
+{% endwith %}

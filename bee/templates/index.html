@@ -9,9 +9,8 @@
 {% endblock %}
 
 {% block controls %}
+    {% if not user.is_anonymous %}
     <a id="control-new-post" class="button button-green" href="#">New post</a>
-
-    {{ block.super }}
 
     <script type="text/javascript">
         $('#control-new-post').click(function () {
@@ -31,6 +30,9 @@
             return false;
         });
     </script>
+    {% endif %}
+
+    {{ block.super }}
 {% endblock %}
 
 {% block content %}

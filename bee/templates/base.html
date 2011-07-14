@@ -27,14 +27,14 @@
 
     <div id="page">
 
-        <div id="controls">
-            {% if user.is_anonymous %}
-            <a href="/signin" class="button button-orange">Sign in</a>
-            {% else %}
-                {% block controls %}
-                <a href="/signout" class="button button-black">Sign out</a>
-                {% endblock %}
-            {% endif %}
+        <div id="controls" class="pkg">
+            {% block controls %}
+                {% if user.is_anonymous %}
+                    <a href="/signin" class="button button-orange">Sign in</a>
+                {% else %}
+                    <a href="/signout" class="button button-black">Sign out</a>
+                {% endif %}
+            {% endblock %}
         </div>
 
         <div id="title" class="pkg">

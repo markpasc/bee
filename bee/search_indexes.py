@@ -13,6 +13,7 @@ class PostIndex(indexes.SearchIndex):
     author_pk = indexes.IntegerField(model_attr='author__id')
     published = indexes.DateTimeField(model_attr='published')
     private = indexes.IntegerField(model_attr='private')
+    result = indexes.CharField(indexed=False, use_template=True)
 
     def index_queryset(self):
         return Post.objects.filter(published__lte=datetime.now())
