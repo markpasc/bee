@@ -3,3 +3,4 @@ Django
 south
 sentry
 django-taggit
+django-haystack

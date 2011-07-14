@@ -8,6 +8,8 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseNotFound
 from django.shortcuts import render
 from django.utils import feedgenerator
+from haystack.query import SearchQuerySet
+import haystack.views
 
 from bee.models import Post, Template
 from bee.forms import PostForm
@@ -103,6 +105,39 @@ def feed(request, author=None):
             content_html=post.html)
 
     return HttpResponse(feed.writeString('utf-8'), content_type=feed.mime_type)
+
+
+class PostSearch(haystack.views.SearchView):
+
+    def build_form(self, form_kwargs=None):
+        log = logging.getLogger('.'.join((__name__, 'PostSearch')))
+        request = self.request
+
+        log.debug("which author has domain %r?", request.META['HTTP_HOST'])
+        try:
+            author = User.objects.get(authorsite__site__domain=request.META['HTTP_HOST'])
+        except User.DoesNotExist:
+            log.debug("    no such author! no results at all!")
+            sqs = SearchQuerySet().none()
+        else:
+            sqs = SearchQuerySet().filter(author_pk=author.pk)
+            # What visibility of posts can the searcher see?
+            if request.user.is_anonymous():
+                log.debug("    viewer is anonymous, so only %s's public posts", author.username)
+                sqs = sqs.filter(private=0)
+            elif request.user.pk == author.pk:
+                log.debug("    viewer is %s, so all their posts", author.username)
+            else:
+                # TODO: honor trust groups instead of giving everyone else only public posts
+                log.debug("    viewer is logged in as somebody else, so only %s's public posts", author.username)
+                sqs = sqs.filter(private=0)
+
+        self.searchqueryset = sqs
+
+        return super(PostSearch, self).build_form(form_kwargs)
+
+
+search = PostSearch()
 
 
 @author_site
