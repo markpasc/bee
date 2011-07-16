@@ -47,7 +47,7 @@ class Post(models.Model):
     avatar = models.ForeignKey(Avatar, blank=True, null=True)
     title = models.CharField(max_length=255, blank=True)
     html = models.TextField(blank=True)
-    slug = models.SlugField()
+    slug = models.SlugField(max_length=80)
     atom_id = models.CharField(max_length=255, unique=True)  # even for different authors, should be unique
 
     created = models.DateTimeField(default=datetime.utcnow)
@@ -83,6 +83,11 @@ class Post(models.Model):
 
     def __unicode__(self):
         return self.title or self.slug
+
+    def save(self, *args, **kwargs):
+        if len(self.slug) > 80:
+            self.slug = self.slug[:80]
+        super(Post, self).save(*args, **kwargs)
 
     class Meta:
         unique_together = (('author', 'slug'),)
