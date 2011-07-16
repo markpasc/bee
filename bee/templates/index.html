@@ -39,6 +39,15 @@
 
     {% for post in posts %}
         {% include "post.html" %}
+
+        {% if forloop.last %}
+        <div class="pager-bottom pager">
+            <span class="pager-right">
+                <a href="{% url index_before before=post.slug %}"><span class="pager-label">More</span> <span class="chevron">&raquo;</span></a>
+            </span>
+        </div>
+        {% endif %}
     {% endfor %}
+
 
 {% endblock %}

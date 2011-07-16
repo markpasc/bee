@@ -56,14 +56,21 @@ def posts_for_request(request, author):
 
 
 @author_site
-def index(request, author=None):
-    # TODO: is there a better place to put this biz logic?
+def index(request, author=None, before=None):
     posts = posts_for_request(request, author)
-    posts = posts.filter(published__lt=datetime.utcnow()).order_by('-published')
+    if before is None:
+        posts = posts.filter(published__lt=datetime.utcnow())
+    else:
+        try:
+            before_post = Post.objects.get(slug=before)
+        except Post.DoesNotExist:
+            raise Http404
+        posts = posts.filter(published__lt=before_post.published, id__lt=before_post.id)
+    posts = posts.order_by('-published', '-id')
 
     data = {
         'author': author,
-        'posts': posts[:10],
+        'posts': posts[:20],
     }
     return render(request, 'index.html', data)
 
@@ -95,7 +102,7 @@ def feed(request, author=None):
         feed_url=request.build_absolute_uri(), feed_guid=feed_id)
 
     posts = posts_for_request(request, author)
-    posts = posts.filter(published__lt=datetime.utcnow()).order_by('-published')
+    posts = posts.filter(published__lt=datetime.utcnow()).order_by('-published', '-id')
     posts = posts[:20]
 
     for post in posts:
