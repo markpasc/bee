@@ -99,6 +99,7 @@ class Asset(models.Model):
     created = models.DateTimeField(default=datetime.utcnow)
     author = models.ForeignKey('auth.User', related_name='assets_authored')
     posts = models.ManyToManyField(Post, blank=True)
+    original_url = models.CharField(max_length=255, unique=True, blank=True, null=True)
 
 
 # TODO: is this really a siteinfo? with site's display name?

@@ -56,12 +56,16 @@ class ImportCommand(BaseCommand):
             if img_path is None:
                 continue
 
+            if bee.models.Asset.objects.filter(author=post.author, original_url=img_src).exists():
+                logging.debug("Already imported asset for URL %s", img_src)
+                continue
+
             if not os.access(img_path, os.R_OK):
                 logging.warn("Couldn't import asset for URL %s: file %s doesn't exist", img_src, img_path)
                 continue
 
             with open(img_path, 'r') as f:
-                asset = bee.models.Asset(author=post.author, created=post.published)
+                asset = bee.models.Asset(author=post.author, created=post.published, original_url=img_src)
                 asset.sourcefile.save(basename(img_path), File(f), save=True)
                 assets.append(asset)
 
