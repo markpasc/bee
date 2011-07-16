@@ -5,6 +5,7 @@ import logging
 
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseNotFound
 from django.shortcuts import render
 from django.utils import feedgenerator
@@ -65,7 +66,8 @@ def index(request, author=None, before=None):
             before_post = Post.objects.get(slug=before)
         except Post.DoesNotExist:
             raise Http404
-        posts = posts.filter(published__lt=before_post.published, id__lt=before_post.id)
+        posts = posts.filter(Q(published__lt=before_post.published) |
+            Q(published=before_post.published, id__lt=before_post.id))
     posts = posts.order_by('-published', '-id')
 
     data = {
