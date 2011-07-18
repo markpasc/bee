@@ -58,6 +58,7 @@ $('#editor-post-button').click(function (e) {
         slug: $('#entry-slug').text(),
         // TODO: use Date.toISOString() when we have a js date from a picker instead
         published: $.trim($('#entry-published').text()),
+        tags: '',
         private: true,
         private_to: []
     };
