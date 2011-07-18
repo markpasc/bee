@@ -58,7 +58,7 @@ class Post(models.Model):
     private = models.BooleanField(blank=True, default=True)
     private_to = models.ManyToManyField(TrustGroup, blank=True)
 
-    tags = TaggableManager()
+    tags = TaggableManager(blank=True)
 
     @property
     def permalink(self):
