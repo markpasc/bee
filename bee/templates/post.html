@@ -1,3 +1,4 @@
+{% load comments %}
 <div class="entry" id="entry-{{ post.atom_id|slugify }}">
     {% if post.title %}
     <h2 class="entry-header"><a href="{{ post.permalink }}">{{ post.title }}</a></h2>
@@ -18,5 +19,9 @@
         {% endif %}
         <span class="entry-timestamp">{{ post.published|date:"g:i" }} <small>{{ post.published|date:"A" }}</small> {{ post.published|date:"j M Y" }}</span>
         <span><a href="{{ post.permalink }}">Permalink</a></span>
+        {% get_comment_count for post as comment_count %}
+        {% if comment_count or post.comments_enabled %}
+        <span><a href="{{ post.permalink }}#comments">{{ comment_count }} comment{{ comment_count|pluralize }}</a></span>
+        {% endif %}
     </div>
 </div>

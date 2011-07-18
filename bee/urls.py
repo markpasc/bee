@@ -8,6 +8,7 @@ urlpatterns = patterns('bee.views',
     url(r'^search/$', 'search', name='search'),
     url(r'^(?P<slug>[\w-]+)$', 'permalink', name='permalink'),
 
-    url(r'^_/editor', 'editor', name='editor'),
-    url(r'^_/edit', 'edit'),
+    url(r'^_/editor$', 'editor', name='editor'),
+    url(r'^_/edit$', 'edit'),
+    url(r'^_/comments/', include('django.contrib.comments.urls')),
 )

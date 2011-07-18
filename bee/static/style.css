@@ -214,6 +214,17 @@ pre { white-space: pre-wrap; overflow: auto; }
 pre.wide { white-space: pre; }
 
 
+#comment-form label {
+    display: inline-block;
+    text-align: right;
+    width: 10em;
+    vertical-align: top;
+}
+#comment-form p.submit {
+    padding-left: 10em;
+}
+
+
 /* entry editor */
 #entry-editor span.editor-buttons {
     display: inline-block;

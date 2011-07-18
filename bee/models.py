@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 
+from django.contrib.comments.moderation import CommentModerator, moderator
 from django.db import models
 from taggit.managers import TaggableManager
 
@@ -58,6 +59,7 @@ class Post(models.Model):
     private = models.BooleanField(blank=True, default=True)
     private_to = models.ManyToManyField(TrustGroup, blank=True)
 
+    comments_enabled = models.BooleanField(blank=True, default=True)
     tags = TaggableManager(blank=True)
 
     @property
@@ -91,6 +93,17 @@ class Post(models.Model):
 
     class Meta:
         unique_together = (('author', 'slug'),)
+
+
+class PostCommentModerator(CommentModerator):
+
+    email_notification = True
+    enable_field = 'comments_enabled'
+    auto_moderate_field = 'published'
+    moderate_after = 14
+
+
+moderator.register(Post, PostCommentModerator)
 
 
 class Asset(models.Model):
