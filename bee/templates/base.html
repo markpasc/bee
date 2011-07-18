@@ -45,6 +45,17 @@
             {% block content %}{% endblock %}
         </div>
 
+        <div id="footer">
+            <div class="footer-item">
+                <a href="{% url index %}">Home</a>
+            </div>
+            <div class="footer-item">
+                <form method="GET" action="{% url search %}">
+                    <input type="search" name="q" placeholder="Search">
+                </form>
+            </div>
+        </div>
+
     </div>
 
 </body></html>

@@ -62,6 +62,16 @@ body {
     margin-bottom: 20px;
 }
 
+#footer {
+    border-top: 1px solid #e7e7e7;
+    padding: 15px 20px;
+    margin: 20px 0 0;
+}
+.footer-item {
+    display: inline-block;
+    padding-right: 20px;
+}
+
 .entry {
     background-color: white;
     position: relative;
@@ -110,7 +120,7 @@ a.arrow:link,
 .pager {  /* also a .content-nav */
     position: relative;
     visibility: visible;
-    margin: 40px 0 0 0;
+    margin: 40px 0;
     text-align: center;
 }
 .pager .separator {
@@ -202,6 +212,7 @@ pre, code, tt {
 }
 pre { white-space: pre-wrap; overflow: auto; }
 pre.wide { white-space: pre; }
+
 
 /* entry editor */
 #entry-editor span.editor-buttons {
