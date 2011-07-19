@@ -64,14 +64,20 @@ $('#editor-post-button').click(function (e) {
     };
 
     var trust = $('#entry-trust').val();
-    $.each(trust, function (key, value) {
-        if (value == 'public') {
-            data['private'] = false;
-            data['private_to'] = [];
-            return false;
-        }
-        data['private_to'].push(value);
-    });
+    if (trust) {
+        $.each(trust, function (key, value) {
+            if (value == 'public') {
+                data['private'] = false;
+                data['private_to'] = [];
+                return false;
+            }
+            data['private_to'].push(value);
+        });
+    }
+    else {
+        data['private'] = true;
+        data['private_to'] = [];
+    }
 
     if ($('#entry-editor #entry-id').size()) {
         data['id'] = $('#entry-editor #entry-id').val();
