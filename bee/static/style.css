@@ -143,6 +143,9 @@ a.arrow:link,
 .entry-content {
     position: relative;
     text-rendering: optimizeLegibility;
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    hyphens: auto;
 }
 
 .entry-content blockquote, .entry-content div.highlight {
