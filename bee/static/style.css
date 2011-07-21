@@ -142,6 +142,7 @@ a.arrow:link,
 
 .entry-content {
     position: relative;
+    text-rendering: optimizeLegibility;
 }
 
 .entry-content blockquote, .entry-content div.highlight {
@@ -185,6 +186,7 @@ a.arrow:link,
 
 .entry-header {
     margin: 0 0 5px;
+    text-rendering: optimizeLegibility;
 }
 .entry-footer {
     margin: 0;
