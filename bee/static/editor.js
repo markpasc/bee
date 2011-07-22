@@ -54,7 +54,7 @@ $('#editor-post-button').click(function (e) {
     var data = {
         //avatar: 
         title: $('#entry-editor .entry-header').text(),
-        html: $('#entry-editor .entry-content').html(),
+        html: $.trim($('#entry-editor .entry-content').html()),
         slug: $('#entry-slug').text(),
         // TODO: use Date.toISOString() when we have a js date from a picker instead
         published: $.trim($('#entry-published').text()),
