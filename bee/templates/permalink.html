@@ -19,7 +19,7 @@
                 success: function(data, textStatus, xhr) {
                     var $editor = $(data);
                     var $firstEntry = $('#content .entry').first();
-                    $firstEntry.size() ? $firstEntry.before($editor) : $('#content').append($(data));
+                    $firstEntry.size() ? $firstEntry.before($editor) : $('#content').append($editor);
                     $('#entry-editor .entry-header').focus();
 
                     $firstEntry.hide();

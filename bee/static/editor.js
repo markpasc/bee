@@ -28,13 +28,33 @@ function autosave() {
     $editor.attr('data-autosaved', 'yes');
 }
 
-$(document).ready(function () {
+function removeAutosave(postid) {
+    $('#entry-editor').attr('data-autosaved', null);
+    localStorage.removeItem('autosave.' + postid);
+    localStorage.removeItem('autosave.' + postid + '.title');
+    localStorage.removeItem('autosave.' + postid + '.html');
+    localStorage.removeItem('autosave.' + postid + '.slug');
+    localStorage.removeItem('autosave.' + postid + '.published');
+}
+
+var editorPublishedTimer;
+var editorAutosaveTimer;
+
+function startEditor() {
     updatePublishedTimer();
-    setInterval(updatePublishedTimer, 60000);
+    editorPublishedTimer = setInterval(updatePublishedTimer, 60000);
 
     if (Modernizr.localstorage)
-        setInterval(autosave, 10000);
-});
+        editorAutosaveTimer = setInterval(autosave, 10000);
+}
+$(document).ready(startEditor);
+
+function preventNavigation(e) {
+    var ret = 'The editor is open.';
+    if (e) e.returnValue = ret;
+    return ret;
+}
+$(window).bind('beforeunload', preventNavigation);
 
 $('#entry-published').bind('keypress', function (e) {
     $(this).attr('data-now', null);
@@ -107,8 +127,10 @@ $('#editor-post-button').click(function (e) {
         data['private_to'] = [];
     }
 
+    var autosaveid = 'new';
     if ($('#entry-editor #entry-id').size()) {
         data['id'] = $('#entry-editor #entry-id').val();
+        autosaveid = data['id'];
     }
 
     $.ajax({
@@ -117,11 +139,36 @@ $('#editor-post-button').click(function (e) {
         dataType: 'json',
         data: data,
         success: function (data, textStatus, xhr) {
+            removeAutosave(autosaveid);
+            $(window).unbind('beforeunload', preventNavigation);
             window.location = data['permalink'];
         },
         error: function (xhr, textStatus, errorThrown) {
             alert('ERROR: ' + xhr.responseText);
         }
     });
+    return false;
+});
+
+$('#editor-discard-button').click(function (e) {
+    var $entryid = $('#entry-editor #entry-id');
+    var autosaveid = $entryid.size() ? $entryid.val() : 'new';
+    removeAutosave($entryid);
+
+    $('#entry-editor').remove();
+    if (editorPublishedTimer) {
+        clearTimeout(editorPublishedTimer);
+        editorPublishedTimer = null;
+    }
+    if (editorAutosaveTimer) {
+        clearTimeout(editorAutosaveTimer);
+        editorAutosaveTimer = null;
+    }
+
+    $(window).unbind('beforeunload', preventNavigation);
+
+    // If there's a hidden entry (that is, we're on a permalink page), show it.
+    $('#content .entry:hidden').show();
+
     return false;
 });
