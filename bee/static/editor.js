@@ -46,6 +46,8 @@ function startEditor() {
 
     if (Modernizr.localstorage)
         editorAutosaveTimer = setInterval(autosave, 10000);
+
+    $('#entry-link-editor').hide();
 }
 $(document).ready(startEditor);
 
@@ -129,6 +131,25 @@ $('#entry-editor .entry-content').bind('keydown', function (e) {
     }
 
     return true;
+});
+
+$('#entry-editor .entry-content a').live('click', false).live('mouseover', function (e) {
+    var $link = $(this);
+    var linkpos = $link.offset();
+
+    var $linkeditor = $('#entry-link-editor');
+    $linkeditor.text($(this).attr('href'));
+    $linkeditor.bind('keyup', function (e) {
+        $link.attr('href', $(this).text());
+    });
+    $linkeditor.show();
+    $linkeditor.offset({ top: linkpos.top + $(this).height(), left: linkpos.left });
+    $linkeditor.focus();
+}).live('mouseout', function (e) {
+    var $linkeditor = $('#entry-link-editor');
+    $linkeditor.blur();
+    $linkeditor.unbind('keyup');
+    $linkeditor.hide();
 });
 
 $('#editor-post-button').click(function (e) {

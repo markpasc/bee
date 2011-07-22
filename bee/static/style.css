@@ -231,6 +231,9 @@ pre.wide { white-space: pre; }
 
 
 /* entry editor */
+#entry-editor {
+    position: relative;
+}
 #entry-editor span.editor-buttons {
     display: inline-block;
     float: right;
@@ -251,4 +254,17 @@ button.ui-multiselect, .ui-multiselect-menu {
 .entry-footer .ui-multiselect-menu li {
     margin-left: 0;
     padding-left: 0;
+}
+#entry-editor-panels {
+    display: block;
+    position: absolute;
+}
+#entry-link-editor {
+    display: inline-block;
+    background: #66c;
+    color: white;
+    padding: 0 10px;
+    font-size: 0.8em;
+    border-radius: 5px;
+    -moz-border-radius: 5px;
 }

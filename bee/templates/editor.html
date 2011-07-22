@@ -7,6 +7,9 @@
     {% endif %}
     <h2 class="entry-header" contenteditable="true">{% if post %}{{ post.title }}{% else %}Title{% endif %}</h2>
     <!-- author -->
+    <div id="entry-editor-panels">
+        <div id="entry-link-editor" contenteditable="true"></div>
+    </div>
     <div class="entry-content pkg" contenteditable="true">
         {% if post %}
             {{ post.html|safe }}
