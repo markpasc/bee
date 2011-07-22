@@ -98,6 +98,39 @@ $('#entry-slug').bind('keypress', function (e) {
     $(this).attr('data-autotitle', null);
 });
 
+$('#entry-editor .entry-content').bind('keydown', function (e) {
+    if (e.altKey || e.shiftKey || !e.ctrlKey)
+        return true;
+
+    if (e.which == 66) {
+        document.execCommand('bold');
+        return false;
+    }
+    else if (e.which == 72) {
+        var text = window.getSelection().toString();
+        document.execCommand('insertHTML', false, text);
+        return false;
+    }
+    else if (e.which == 73) {
+        document.execCommand('italic');
+        return false;
+    }
+    else if (e.which == 76) {
+        document.execCommand('createLink', false, '#');
+        return false;
+    }
+    else if (e.which == 221) {
+        document.execCommand('indent');
+        return false;
+    }
+    else if (e.which == 219) {
+        document.execCommand('outdent');
+        return false;
+    }
+
+    return true;
+});
+
 $('#editor-post-button').click(function (e) {
     var data = {
         //avatar: 
