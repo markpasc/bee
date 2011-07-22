@@ -7,13 +7,41 @@ function updatePublishedTimer() {
         $publ.text(now.toISOString());
     }
 }
+
+function autosave() {
+    var $editor = $('#entry-editor');
+    if ($editor.attr('data-autosaved'))
+        return;
+
+    var $id = $('#entry-id');
+    var postid = $id.size() ? $id.val() : 'new';
+
+    localStorage['autosave.' + postid] = 1;
+    localStorage['autosave.' + postid + '.title'] = $('#entry-editor .entry-header').text();
+    localStorage['autosave.' + postid + '.html'] = $('#entry-editor .entry-content').html();
+    localStorage['autosave.' + postid + '.slug'] = $('#entry-slug').text();
+
+    var $publ = $('#entry-published');
+    if (!$publ.attr('data-now'))
+        localStorage['autosave.' + postid + '.published'] = $('#entry-published').text();
+
+    $editor.attr('data-autosaved', 'yes');
+}
+
 $(document).ready(function () {
     updatePublishedTimer();
-    setInterval("updatePublishedTimer()", 60000);
+    setInterval(updatePublishedTimer, 60000);
+
+    if (Modernizr.localstorage)
+        setInterval(autosave, 10000);
 });
 
 $('#entry-published').bind('keypress', function (e) {
     $(this).attr('data-now', null);
+});
+
+$('#entry-editor .entry-header').add('#entry-editor .entry-content').add('#entry-published').add('#entry-slug').bind('textInput', function (e) {
+    $('#entry-editor').attr('data-autosaved', null);
 });
 
 $('#entry-trust').multiselect({
