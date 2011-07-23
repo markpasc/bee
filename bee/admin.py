@@ -1,9 +1,21 @@
+from os.path import basename
+
 from django.contrib import admin
 
 from bee.models import *
 
 
 admin.site.register(TrustGroup)
+
+
+class AssetAdmin(admin.ModelAdmin):
+    list_display = ('filename', 'author', 'created', 'original_url')
+    list_filter = ('author',)
+
+    def filename(self, obj):
+        return basename(obj.sourcefile.name)
+
+admin.site.register(Asset, AssetAdmin)
 
 
 class AvatarAdmin(admin.ModelAdmin):
@@ -34,6 +46,3 @@ class TemplateAdmin(admin.ModelAdmin):
     list_display = ('author', 'purpose')
 
 admin.site.register(Template, TemplateAdmin)
-
-
-admin.site.register(Asset)
