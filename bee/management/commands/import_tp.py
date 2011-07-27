@@ -6,12 +6,15 @@ from os.path import join
 import re
 import sys
 
+from BeautifulSoup import BeautifulSoup
 from django.contrib.auth.models import User
+import django.contrib.comments
 from django.core.files.base import ContentFile
 import httplib2
 
 from bee.management.import_command import ImportCommand
 import bee.models
+import bee.comments.models
 
 
 class Command(ImportCommand):
@@ -59,6 +62,59 @@ class Command(ImportCommand):
                 return image_path
         return
 
+    def format_comment(self, text_content):
+        plaintext_elements = re.compile(r'pre|lj-raw|table')
+        content_root = BeautifulSoup(text_content)
+        for el in content_root.findAll(text=lambda t: '\n' in t):
+            if el.findParent(plaintext_elements) is None:
+                new_content = el.string.replace('\n', '<br>\n')
+                el.replaceWith(BeautifulSoup(new_content))
+        return str(content_root)
+
+    def import_comments(self, post, obj):
+        author_site_bridge = bee.models.AuthorSite.objects.get(author=post.author)
+        author_site = author_site_bridge.site
+        comment_cls = django.contrib.comments.get_model()
+
+        comments = obj.get('comments') or ()
+        for commentdata in comments:
+            # Imported comments will have atom_ids so we can reimport them.
+            atom_id = commentdata['id']
+            try:
+                comment = comment_cls.objects.get(atom_id=atom_id)
+            except comment_cls.DoesNotExist:
+                comment = comment_cls(atom_id=atom_id)
+
+            text_content, text_format = commentdata['content'], commentdata['textFormat']
+            assert text_format == 'html_convert_linebreaks'
+            text_content = self.format_comment(text_content)
+            comment.comment = text_content
+
+            publ = commentdata['published']
+            publ_dt = datetime.strptime(publ, '%Y-%m-%dT%H:%M:%SZ')
+            comment.submit_date = publ_dt
+
+            comment.site = author_site
+            is_private = commentdata['publicationStatus']['draft'] or commentdata['publicationStatus']['spam']
+            comment.is_public = not is_private
+            comment.content_object = post  # typepad blog comments aren't threaded
+
+            # Is the author a TypePad user?
+            if commentdata['author']['urlId'] == '6p0000000000000014':
+                comment.user_name = commentdata['commenter'].get('name', 'anonymous')
+                comment.user_url = commentdata['commenter'].get('href', '')
+            else:
+                # TODO: make an identity with a user who can be the comment user?
+                #try:
+                #    ident_obj = bee.models.Identity.objects.get(identifier=openid)
+                #except bee.models.Identity.DoesNotExist:
+                #    ident_obj = bee.models.Identity(identifier=openid)
+                #    ident_obj.save()
+                comment.user_name = commentdata['author']['displayName']
+                comment.user_url = commentdata['author']['profilePageUrl']
+
+            comment.save()
+
     def import_entry(self, obj):
         assert obj['objectType'] == 'Post'
 
@@ -87,6 +143,8 @@ class Command(ImportCommand):
 
         for asset in assets:
             asset.posts.add(post)
+
+        self.import_comments(post, obj)
 
     def import_entries(self):
         first = True
