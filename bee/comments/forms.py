@@ -1,12 +1,14 @@
+from django import forms
 import django.contrib.comments.forms
+from django.utils.translation import ugettext_lazy as _
 
 from bee.comments.models import PostComment
 
 
 class PostCommentForm(django.contrib.comments.forms.CommentForm):
 
-    #atom_id = forms.CharField(max_length=255, 
-    #avatar = forms.ModelChoiceField(queryset=Avatar.objects.filter(user=...?))
+    avatar = forms.IntegerField(required=False, min_value=1)
+    email = forms.EmailField(label=_("Email address"), required=False)
 
     def get_comment_model(self):
         return PostComment

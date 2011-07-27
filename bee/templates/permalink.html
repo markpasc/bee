@@ -47,6 +47,7 @@
             <div id="comment-{{ comment.pk }}" class="comment">
                 <p class="comment-header">
                     {% if comment.user %}
+                        <span class="commenter-name">{{ comment.user.get_full_name|default:comment.user.username }}</span>
                     {% else %}
                         {% if comment.user_url %}
                             <a class="commenter-name" href="{{ comment.user_url }}" rel="nofollow">{{ comment.user_name }}</a>
@@ -66,7 +67,33 @@
 
     {% if post.comments_enabled %}
     <div id="comment-form" class="entry">
-        {% render_comment_form for post %}
+        {% get_comment_form for post as form %}
+        <form method="post" action="{% comment_form_target %}">
+            {% csrf_token %}
+
+            {{ form.content_type }}
+            {{ form.object_pk }}
+            {{ form.timestamp }}
+            {{ form.security_hash }}
+            <input type="hidden" name="next" value="{{ current_url }}#comments">
+
+            {% if user.is_anonymous %}
+                {{ form.name }}
+                {{ form.url }}
+            {% else %}
+                <p><label>Name</label> <a target="_new" href="">{{ user.get_full_name|default:user.username }}</a></p>
+            {% endif %}
+
+            <p>
+                <label for="id_comment">Comment</label>
+                {{ form.comment }}
+            </p>
+
+            <p class="submit">
+                <input type="submit" name="submit" value="Post">
+                <input type="submit" name="preview" value="Preview">
+            </p>
+        </form>
     </div>
     {% endif %}
 

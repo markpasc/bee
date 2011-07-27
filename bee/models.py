@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
+import time
 
 from django.contrib.comments.moderation import CommentModerator, moderator
 from django.db import models
@@ -101,6 +102,16 @@ class PostCommentModerator(CommentModerator):
     enable_field = 'comments_enabled'
     auto_moderate_field = 'published'
     moderate_after = 14
+
+    def _get_delta(self, local_now, utc_then):
+        # Our "then"s are always in UTC, so compare in UTC.
+        utc_now = local_now + timedelta(seconds=time.altzone if time.daylight else time.timezone)
+        # Let "then" be in the future (unlike Django's implementation, grr).
+        if utc_now < utc_then:
+            # But don't risk confusing anything by returning a negative timedelta.
+            return timedelta(0)
+        elapsed_since_then = utc_now - utc_then
+        return elapsed_since_then
 
 
 moderator.register(Post, PostCommentModerator)

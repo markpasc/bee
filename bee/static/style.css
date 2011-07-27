@@ -203,7 +203,7 @@ a.comment-timestamp:hover, .entry-header a:hover, a.arrow:hover {
 .entry-footer a {
     color: #999;
 }
-.entry-footer small {
+.entry-footer small, .comment-header small {
     font-size: 80%;
 }
 .entry-footer span {

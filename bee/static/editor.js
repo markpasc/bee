@@ -161,6 +161,7 @@ $('#editor-post-button').click(function (e) {
         // TODO: use Date.toISOString() when we have a js date from a picker instead
         published: $.trim($('#entry-published').text()),
         tags: '',
+        comments_enabled: true,
         private: true,
         private_to: []
     };
