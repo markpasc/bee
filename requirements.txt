@@ -4,4 +4,5 @@ south
 sentry
 django-taggit
 django-haystack
+django-social-auth
 bleach

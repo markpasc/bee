@@ -232,13 +232,13 @@ pre.wide { white-space: pre; }
     font-size: 0.8em;
 }
 
-#comment-form label {
+#comment-form label, #sign-in-form label {
     display: inline-block;
     text-align: right;
     width: 10em;
     vertical-align: top;
 }
-#comment-form p.submit {
+#comment-form p.submit, #sign-in-form p.submit {
     padding-left: 10em;
 }
 
