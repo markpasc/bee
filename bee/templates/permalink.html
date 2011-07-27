@@ -44,8 +44,19 @@
         {% if forloop.first %}
         <div id="comments" class="entry">
         {% endif %}
-            <div class="comment">
-                <p>{{ comment.user_name }} on {{ comment.submit_date }}</p>
+            <div id="comment-{{ comment.pk }}" class="comment">
+                <p class="comment-header">
+                    {% if comment.user %}
+                    {% else %}
+                        {% if comment.user_url %}
+                            <a class="commenter-name" href="{{ comment.user_url }}" rel="nofollow">{{ comment.user_name }}</a>
+                        {% else %}
+                            <span class="commenter-name">{{ comment.user_name }}</span>
+                        {% endif %}
+                    {% endif %}
+                    <a class="comment-timestamp" href="#comment-{{ comment.pk }}">{{ comment.submit_date|date:"g:i" }} <small>{{ comment.submit_date|date:"A" }}</small> {{ comment.submit_date|date:"j M Y" }}</a>
+                </p>
+
                 <div>{{ comment.comment|bleachhtml }}</div>
             </div>
         {% if forloop.last %}

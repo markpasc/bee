@@ -105,15 +105,17 @@ body {
 
 .pager a:link, .pager a:hover, .pager a:visited, .pager a:active, .pager a:focus,
 a.arrow:link,
+a.comment-timestamp:link, a.comment-timestamp:hover, a.comment-timestamp:visited, a.comment-timestamp:active, a.comment-timestamp:focus,
 .entry-header a:link, .entry-header a:hover, .entry-header a:visited, .entry-header a:active, .entry-header a:focus {
     background-color: transparent;
     border-width: 0;
     text-decoration: none;
 }
+a.comment-timestamp:link, a.comment-timestamp:hover, a.comment-timestamp:visited, a.comment-timestamp:active, a.comment-timestamp:focus,
 .entry-header a:link, .entry-header a:hover, .entry-header a:visited, .entry-header a:active, .entry-header a:focus {
     color: inherit;
 }
-.entry-header a:hover, a.arrow:hover {
+a.comment-timestamp:hover, .entry-header a:hover, a.arrow:hover {
     text-decoration: underline;
 }
 
@@ -218,6 +220,17 @@ pre, code, tt {
 pre { white-space: pre-wrap; overflow: auto; }
 pre.wide { white-space: pre; }
 
+
+#comments .comment + .comment {
+    margin-top: 4ex;
+}
+#comments p.comment-header {
+    margin: 0;
+    color: #999;
+}
+#comments .comment-timestamp {
+    font-size: 0.8em;
+}
 
 #comment-form label {
     display: inline-block;
