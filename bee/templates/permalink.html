@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load comments %}
+{% load bee %}
 
 {% block htmltitle %}{{ post.title }} &middot; {{ author.username }}{% endblock %}
 
@@ -45,7 +46,7 @@
         {% endif %}
             <div class="comment">
                 <p>{{ comment.user_name }} on {{ comment.submit_date }}</p>
-                <p>{{ comment.comment }}</p>
+                <div>{{ comment.comment|bleachhtml }}</div>
             </div>
         {% if forloop.last %}
         </div>
