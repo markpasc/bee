@@ -79,9 +79,8 @@
 
             {% if user.is_anonymous %}
                 {{ form.name }}
-                {{ form.url }}
             {% else %}
-                <p><label>Name</label> <a target="_new" href="">{{ user.get_full_name|default:user.username }}</a></p>
+                <p><label>Name</label> {{ user.get_full_name|default:user.username }}</p>
             {% endif %}
 
             <p>
