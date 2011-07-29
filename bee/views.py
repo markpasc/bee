@@ -8,6 +8,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseNotFound
 from django.shortcuts import render
+from django.template.response import TemplateResponse
 from django.utils import feedgenerator
 from haystack.query import SearchQuerySet
 import haystack.views
@@ -25,7 +26,11 @@ def author_site(fn):
             return HttpResponseNotFound('No author selected')
         kwargs['author'] = author
 
-        return fn(request, *args, **kwargs)
+        resp = fn(request, *args, **kwargs)
+        if isinstance(resp, TemplateResponse):
+            if request.user.is_authenticated() and request.user.pk == author.pk:
+                resp.context_data['user_is_author'] = True
+        return resp
     return moo
 
 
@@ -74,7 +79,7 @@ def index(request, author=None, before=None):
         'author': author,
         'posts': posts[:20],
     }
-    return render(request, 'index.html', data)
+    return TemplateResponse(request, 'index.html', data)
 
 
 class RealAtomFeed(feedgenerator.Atom1Feed):
@@ -171,7 +176,7 @@ def permalink(request, slug, author=None):
         'post': post,
     }
 
-    return render(request, 'permalink.html', data)
+    return TemplateResponse(request, 'permalink.html', data)
 
 
 @author_site
@@ -186,7 +191,7 @@ def editor(request, author=None):
             return HttpResponseForbidden("Post %s is not your post" % post_id)
         data['post'] = post
 
-    return render(request, 'editor.html', data)
+    return TemplateResponse(request, 'editor.html', data)
 
 
 @author_site

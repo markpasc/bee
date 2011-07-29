@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block controls %}
-    {% if not user.is_anonymous %}
+    {% if user_is_author %}
     <a id="control-new-post" class="button button-green" href="#">New post</a>
 
     <script type="text/javascript">
