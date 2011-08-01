@@ -11,6 +11,8 @@ from django.contrib.auth.models import User
 import django.contrib.comments
 from django.core.files.base import ContentFile
 import httplib2
+import social_auth.models
+import social_auth.backends
 
 from bee.management.import_command import ImportCommand
 import bee.models
@@ -29,12 +31,17 @@ class Command(ImportCommand):
         self.import_entries()
 
     def import_me(self, author):
+        user = User.objects.all().order_by('id')[0]
+
         # Make me an Identity.
         profile_url = author['profilePageUrl']
-        user = User.objects.all().order_by('id')[0]
-        ident_obj, created = bee.models.Identity.objects.get_or_create(identifier=profile_url)
-        ident_obj.user = user
-        ident_obj.save()
+        backend = social_auth.backends.OpenIDBackend()
+        try:
+            ident_obj = backend.get_social_auth_user(profile_url)
+        except social_auth.models.UserSocialAuth.DoesNotExist:
+            # make a user then i guess
+            details = {'username': author['preferredUsername']}
+            ident_obj = backend.associate_auth(user, profile_url, None, details)
 
         # Make me an avatar.
         try:
@@ -47,8 +54,22 @@ class Command(ImportCommand):
             avatar.image.save('typepad', ContentFile(content), save=True)
         self.avatar = avatar
 
-    def person_for_openid(self, openid):
-        ident_obj, created = bee.models.Identity.objects.get_or_create(identifier=openid)
+    def person_for_openid(self, openid, persondata):
+        backend = social_auth.backends.OpenIDBackend()
+        try:
+            ident_obj = backend.get_social_auth_user(openid)
+        except social_auth.models.UserSocialAuth.DoesNotExist:
+            # make a user then i guess
+            details = {
+                'username': authordata['preferredUsername'],
+                'email': '',
+                'first_name': authordata['displayName'][:30],
+            }
+            username = backend.username(details)
+            comment_author = User.objects.create_user(username=username, email='')
+            comment_author.first_name = details['first_name']
+            ident_obj = backend.associate_auth(comment_author, author_ident, None, details)
+
         return ident_obj
 
     def filename_for_image_url(self, image_url):
@@ -104,14 +125,12 @@ class Command(ImportCommand):
                 comment.user_name = commentdata['commenter'].get('name', 'anonymous')
                 comment.user_url = commentdata['commenter'].get('href', '')
             else:
-                # TODO: make an identity with a user who can be the comment user?
-                #try:
-                #    ident_obj = bee.models.Identity.objects.get(identifier=openid)
-                #except bee.models.Identity.DoesNotExist:
-                #    ident_obj = bee.models.Identity(identifier=openid)
-                #    ident_obj.save()
-                comment.user_name = commentdata['author']['displayName']
-                comment.user_url = commentdata['author']['profilePageUrl']
+                authordata = commentdata['author']
+                author_ident = authordata['profilePageUrl']
+
+                comment.user = self.person_for_openid(author_ident, authordata).user
+                comment.user_name = authordata['displayName']
+                comment.user_url = author_ident
 
             comment.save()
 
@@ -128,7 +147,7 @@ class Command(ImportCommand):
         publ_dt = datetime.strptime(publ, '%Y-%m-%dT%H:%M:%SZ')
         post.published = publ_dt
 
-        post.author = self.person_for_openid(obj['author']['profilePageUrl']).user
+        post.author = self.person_for_openid(obj['author']['profilePageUrl'], obj['author']).user
         post.avatar = self.avatar
 
         post.title = obj['title']
