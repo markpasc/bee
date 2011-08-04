@@ -75,6 +75,7 @@
             {{ form.object_pk }}
             {{ form.timestamp }}
             {{ form.security_hash }}
+            <div class="hidden">{{ form.honeypot }}</div>
             <input type="hidden" name="next" value="{{ current_url }}#comments">
 
             {% if user.is_anonymous %}
