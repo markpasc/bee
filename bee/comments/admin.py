@@ -1,13 +1,16 @@
 from django.contrib import admin
+from django.contrib.comments.admin import CommentsAdmin
 
 from bee.comments.models import *
 
 
-class AssetAdmin(admin.ModelAdmin):
-    list_display = ('filename', 'author', 'created', 'original_url')
-    list_filter = ('author',)
+class PostCommentAdmin(CommentsAdmin):
 
-    def filename(self, obj):
-        return basename(obj.sourcefile.name)
+    fieldsets = CommentsAdmin.fieldsets + (
+        (
+            'Bee',
+            {'fields': ('avatar', 'title', 'atom_id')},
+        ),
+    )
 
-admin.site.register(PostComment)
+admin.site.register(PostComment, PostCommentAdmin)
