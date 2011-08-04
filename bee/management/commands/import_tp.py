@@ -68,7 +68,8 @@ class Command(ImportCommand):
             username = backend.username(details)
             comment_author = User.objects.create_user(username=username, email='')
             comment_author.first_name = details['first_name']
-            ident_obj = backend.associate_auth(comment_author, author_ident, None, details)
+            comment_author.save()
+            ident_obj = backend.associate_auth(comment_author, openid, None, details)
 
         return ident_obj
 
