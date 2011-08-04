@@ -18,6 +18,8 @@ from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.template.defaultfilters import slugify, striptags
 from django.utils.text import truncate_words
+import social_auth.backends
+import social_auth.models
 
 from bee.management.import_command import ImportCommand
 import bee.models
@@ -28,7 +30,7 @@ class Command(ImportCommand):
 
     args = '<export file>'
     help = 'Import posts from a livejournal XML export.'
-    option_list = BaseCommand.option_list + (
+    option_list = ImportCommand.option_list + (
         make_option('--foaf',
             metavar='FILE',
             help='The filename of the FOAF document from which to pull friend names and userpic URLs',
@@ -51,7 +53,10 @@ class Command(ImportCommand):
         self.foaf_pics = dict()
 
     def handle(self, source, **options):
-        self.imagemaps = dict((k, expanduser(v)) for k, v in (imageurl.split('=', 1) for imageurl in options['imagemap']))
+        author_site_bridge = bee.models.AuthorSite.objects.get(author=1)
+        self.author_site = author_site_bridge.site
+
+        self.imagemaps = dict((k, expanduser(v)) for k, v in (imageurl.split('=', 1) for imageurl in options['imagemap'] or ()))
         self.import_events(sys.stdin if source == '-' else source,
             options['atomid'], options['foaf'])
 
@@ -75,15 +80,27 @@ class Command(ImportCommand):
             self.foaf_names[openid] = name
             self.foaf_pics[openid] = pic
 
-    def person_for_openid(self, openid, display_name=None, userpic_url=None):
-        if display_name is None:
-            display_name = self.foaf_names.get(openid, '')
-        if userpic_url is None:
-            userpic_url = self.foaf_pics.get(openid, '')
+    def person_for_openid(self, openid, **details):
+        username = details['username']
+        display_name = details.get('display_name', self.foaf_names.get(openid, ''))
+        userpic_url = details.get('userpic_url', self.foaf_pics.get(openid, ''))
 
+        backend = social_auth.backends.OpenIDBackend()
         try:
-            ident_obj = bee.models.Identity.objects.get(identifier=openid)
-        except bee.models.Identity.DoesNotExist:
+            ident_obj = backend.get_social_auth_user(openid)
+        except social_auth.models.UserSocialAuth.DoesNotExist:
+            # make a user then i guess
+            user_details = {
+                'username': username,
+                'email': '',
+                'first_name': display_name,
+            }
+            username = backend.username(user_details)
+            comment_author = User.objects.create_user(username=username, email='')
+            comment_author.first_name = user_details['first_name']
+            comment_author.save()
+            ident_obj = backend.associate_auth(comment_author, openid, None, user_details)
+
             ident_obj = bee.models.Identity(identifier=openid)
             ident_obj.save()
 
@@ -91,19 +108,12 @@ class Command(ImportCommand):
 
     def make_my_openid(self, openid):
         person = User.objects.all().order_by('id')[0]
+
+        backend = social_auth.backends.OpenIDBackend()
         try:
-            ident = bee.models.Identity.objects.get(identifier=openid)
-        except bee.models.Identity.DoesNotExist:
-            logging.info('Creating new identity mapping to %s for %s', person.username, openid)
-            ident = bee.models.Identity(identifier=openid, user=person)
-            ident.save()
-        else:
-            if ident.user.pk == person.pk:
-                logging.debug('Identity %s is already yours, yay', openid)
-            else:
-                logging.info('Merging existing person %s for identity %s into person %s',
-                    ident.user.username, openid, person.username)
-                ident.user.merge_into(person)
+            ident = backend.get_social_auth_user(openid)
+        except social_auth.models.UserSocialAuth.DoesNotExist:
+            ident = backend.associate_auth(person, openid, None, {'username': person.username})
 
         return person
 
@@ -113,18 +123,18 @@ class Command(ImportCommand):
                 new_content = el.string.replace('\n', '<br>\n')
                 el.replaceWith(BeautifulSoup(new_content))
 
-    def import_comment(self, comment_el, asset, openid_for):
-        # TODO: import comments for realsies
-        return
-
+    def import_comment(self, comment_el, asset, openid_for, root_atom_id=None):
+        if root_atom_id is None:
+            root_atom_id = asset.atom_id
         jtalkid = comment_el.get('jtalkid')
-        atom_id = '%s:talk:%s' % (asset.atom_id, jtalkid)
+        atom_id = '%s:talk:%s' % (root_atom_id, jtalkid)
         logging.debug('Yay importing comment %s', jtalkid)
 
+        comment_cls = django.contrib.comments.get_model()
         try:
-            comment = Asset.objects.get(atom_id=atom_id)
-        except Asset.DoesNotExist:
-            comment = Asset(atom_id=atom_id)
+            comment = comment_cls.objects.get(atom_id=atom_id)
+        except comment_cls.DoesNotExist:
+            comment = comment_cls(atom_id=atom_id)
 
         comment_props = {}
         for prop in comment_el.findall('props/prop'):
@@ -136,37 +146,45 @@ class Command(ImportCommand):
 
         body = comment_el.findtext('body')
         if int(comment_props.get('opt_preformatted') or 0):
-            comment.content = body
+            comment.comment = body
         else:
             logging.debug("    Oops, comment not preformatted, let's parse it")
             content_root = BeautifulSoup(body)
             self.format_soup(content_root)
-            comment.content = str(content_root)
+            comment.comment = str(content_root)
 
-        comment.in_reply_to = asset
-        comment.in_thread_of = asset.in_thread_of or asset
+        comment.content_object = asset
+        # TODO: track the thread root?
+        #comment.in_thread_of = asset.in_thread_of or asset
 
         poster = comment_el.get('poster')
         if poster:
             openid = openid_for(poster)
             logging.debug("    Saving %s as comment author", openid)
-            comment.author = person_for_openid(openid)
+            comment.user = self.person_for_openid(openid, username=poster).user
+            comment.user_name = poster
+            comment.user_url = openid
         else:
             logging.debug("    Oh huh this comment was anonymous, fancy that")
+            comment.user_name = 'anonymous'
+            comment.user_url = ''
 
-        comment.imported = True
+        publ = comment_el.findtext('date')
+        publ_dt = datetime.strptime(publ, '%Y-%m-%dT%H:%M:%SZ')
+        comment.submit_date = publ_dt
+
+        comment.site = self.author_site
+        comment.is_public = True
+
         comment.save()
 
-        comment.private = asset.private
-        comment.private_to = asset.private_to.all()
-
         for reply_el in comment_el.findall('comments/comment'):
-            self.import_comment(reply_el, comment, openid_for)
+            self.import_comment(reply_el, comment, openid_for, root_atom_id)
 
     def filename_for_image_url(self, image_url):
         matching_maps = [(map_url, map_path) for map_url, map_path in self.imagemaps.iteritems() if image_url.startswith(map_url)]
         if not matching_maps:
-            continue
+            return
         map_url, map_path = matching_maps[0]
         img_path = join(map_path, img_src[len(map_url):])
 
@@ -226,7 +244,7 @@ class Command(ImportCommand):
             friendname = friend.findtext('username')
             openid = openid_for(friendname)
 
-            ident_person = self.person_for_openid(openid, friend.findtext('fullname'))
+            ident_person = self.person_for_openid(openid, username=friendname, display_name=friend.findtext('fullname'))
 
             # Update their groups.
             group_ids = tuple(int(groupnode.text) for groupnode in friend.findall('groups/group'))
