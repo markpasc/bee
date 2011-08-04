@@ -102,6 +102,7 @@ class PostCommentModerator(CommentModerator):
     enable_field = 'comments_enabled'
     auto_moderate_field = 'published'
     moderate_after = 14
+    moderate_unauthenticated = True
 
     def _get_delta(self, local_now, utc_then):
         # Our "then"s are always in UTC, so compare in UTC.
@@ -112,6 +113,11 @@ class PostCommentModerator(CommentModerator):
             return timedelta(0)
         elapsed_since_then = utc_now - utc_then
         return elapsed_since_then
+
+    def moderate(self, comment, content_object, request):
+        if self.moderate_unauthenticated and not comment.user:
+            return True
+        return super(PostCommentModerator, self).moderate(comment, content_object, request)
 
 
 moderator.register(Post, PostCommentModerator)
