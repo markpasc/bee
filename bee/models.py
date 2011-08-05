@@ -4,7 +4,12 @@ import time
 
 from django.contrib.comments.moderation import CommentModerator, moderator
 from django.db import models
+import south
+from south.modelsinspector import add_introspection_rules
 from taggit.managers import TaggableManager
+
+
+add_introspection_rules([], [r'^social_auth\.fields\.JSONField'])
 
 
 class Avatar(models.Model):
@@ -20,21 +25,12 @@ class Avatar(models.Model):
         return u'%s: %s' % (self.user.username, self.name)
 
 
-class Identity(models.Model):
-
-    identifier = models.CharField(max_length=200)
-    user = models.ForeignKey('auth.User', blank=True, null=True)
-
-    def __unicode__(self):
-        return self.identifier
-
-
 class TrustGroup(models.Model):
 
     user = models.ForeignKey('auth.User', related_name='trust_groups')
     tag = models.CharField(max_length=200)
     display_name = models.CharField(max_length=200)
-    members = models.ManyToManyField(Identity)
+    members = models.ManyToManyField('social_auth.UserSocialAuth')
 
     def __unicode__(self):
         return self.display_name
@@ -78,7 +74,7 @@ class Post(models.Model):
         if self.author.pk == viewer.pk:
             logging.debug("    Post is private but viewer is the author, so it's visible")
             return True
-        if self.private_to.filter(members=viewer).exists():
+        if self.private_to.filter(members__user=viewer).exists():
             logging.debug("    Post is private but it's shared to a group that contains the viewer, so it's visible")
             return True
         logging.debug("    Post is private and not shared to the viewer, so it's NOT visible")
