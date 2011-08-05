@@ -33,7 +33,7 @@ class Command(ImportCommand):
     def import_me(self, author):
         user = User.objects.all().order_by('id')[0]
 
-        # Make me an Identity.
+        # Make me an identity.
         profile_url = author['profilePageUrl']
         backend = social_auth.backends.OpenIDBackend()
         try:
@@ -61,9 +61,9 @@ class Command(ImportCommand):
         except social_auth.models.UserSocialAuth.DoesNotExist:
             # make a user then i guess
             details = {
-                'username': authordata['preferredUsername'],
+                'username': persondata['preferredUsername'],
                 'email': '',
-                'first_name': authordata['displayName'][:30],
+                'first_name': persondata['displayName'][:30],
             }
             username = backend.username(details)
             comment_author = User.objects.create_user(username=username, email='')
@@ -74,14 +74,10 @@ class Command(ImportCommand):
         return ident_obj
 
     def filename_for_image_url(self, image_url):
-        mo = re.search(r'(?P<asset_id>6a\w+)', image_url)
-        if mo is None:
-            return
-        asset_id = mo.group('asset_id')
-        for ext in ('jpeg', 'gif', 'png'):
-            image_path = join(self.sourcedir, '%s-pi.%s' % (asset_id, ext))
-            if os.access(image_path, os.R_OK):
-                return image_path
+        basename = image_url.split('/')[-1]
+        image_path = join(self.sourcedir, basename)
+        if os.access(image_path, os.R_OK):
+            return image_path
         return
 
     def format_comment(self, text_content):
