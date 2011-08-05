@@ -8,14 +8,18 @@ import random
 import re
 import string
 import sys
+from urlparse import urlsplit
 from xml.etree import ElementTree
 
 from BeautifulSoup import BeautifulSoup, NavigableString
 from django.contrib.auth.models import User
+import django.contrib.comments
 from django.core.files import File
 from django.core.management.base import BaseCommand, CommandError
 from django.template.defaultfilters import slugify, striptags
 from django.utils.text import truncate_words
+import social_auth.backends
+import social_auth.models
 
 from bee.management.import_command import ImportCommand
 import bee.models
@@ -30,6 +34,12 @@ class Command(ImportCommand):
             metavar='URL',
             help='Your Vox OpenID for linking your posts and comments to you',
         ),
+        make_option('--skip-posts',
+            help='Skip import of posts (go straight to comments)',
+            action='store_false',
+            dest='import_posts',
+            default=True,
+        ),
     )
 
     def handle(self, source, **options):
@@ -41,29 +51,37 @@ class Command(ImportCommand):
         self.sourcepath = dirname(source)
         tree = ElementTree.parse(source)
 
-        self.import_assets(tree)
+        if options.get('import_posts'):
+            self.import_assets(tree)
         self.import_comments(tree)
 
     def person_for_openid(self, openid, display_name):
-        ident_obj, created = bee.models.Identity.objects.get_or_create(identifier=openid)
+        backend = social_auth.backends.OpenIDBackend()
+        try:
+            ident_obj = backend.get_social_auth_user(openid)
+        except social_auth.models.UserSocialAuth.DoesNotExist:
+            # make a user then i guess
+            details = {
+                'username': urlsplit(openid).netloc,
+                'email': '',
+                'first_name': display_name[:30],
+            }
+            username = backend.username(details)
+            comment_author = User.objects.create_user(username=username, email='')
+            comment_author.first_name = details['first_name']
+            comment_author.save()
+            ident_obj = backend.associate_auth(comment_author, openid, None, details)
+
         return ident_obj
 
     def make_my_openid(self, openid):
         # Rectify my OpenID first.
         person = User.objects.all().order_by('id')[0]
+        backend = social_auth.backends.OpenIDBackend()
         try:
-            ident = bee.models.Identity.objects.get(identifier=openid)
-        except bee.models.Identity.DoesNotExist:
-            logging.info('Creating new identity mapping to %s for %s', person.username, openid)
-            ident = bee.models.Identity(identifier=openid, user=person)
-            ident.save()
-        else:
-            if ident.user.pk == person.pk:
-                logging.debug('Identity %s is already yours, yay', openid)
-            else:
-                logging.info('Merging existing person %s for identity %s into person %s',
-                    ident.user.username, openid, person.username)
-                ident.user.merge_into(person)
+            ident_obj = backend.get_social_auth_user(openid)
+        except social_auth.models.UserSocialAuth.DoesNotExist:
+            ident_obj = backend.associate_auth(person, openid, None, {})
 
     def basic_asset_for_element(self, asset_el):
         atom_id = asset_el.findtext('{http://www.w3.org/2005/Atom}id')
@@ -188,12 +206,9 @@ class Command(ImportCommand):
             asset.private_to = asset_groups
 
     def import_comments(self, tree):
-        # TODO: deal with comments again
-        return
-
         for comment_el in tree.findall('{http://www.w3.org/2005/Atom}entry'):
             # This time, *only* comments.
-            reply_el = asset_el.find('{http://purl.org/syndication/thread/1.0}in-reply-to')
+            reply_el = comment_el.find('{http://purl.org/syndication/thread/1.0}in-reply-to')
             if reply_el is None:
                 continue
 
@@ -205,11 +220,44 @@ class Command(ImportCommand):
                 logging.warn('Referenced parent asset %s does not exist; skipping comment :(', reply_el.get('href'))
                 continue
 
-            asset = basic_asset_for_element(comment_el)
+            author_site_bridge = bee.models.AuthorSite.objects.get(author=parent_asset.author)
+            author_site = author_site_bridge.site
+            comment_cls = django.contrib.comments.get_model()
 
-            asset.in_reply_to = parent_asset
-            asset.in_thread_of = parent_asset.in_thread_of or parent_asset
+            atom_id = comment_el.findtext('{http://www.w3.org/2005/Atom}id')
+            try:
+                comment = comment_cls.objects.get(atom_id=atom_id)
+            except comment_cls.DoesNotExist:
+                comment = comment_cls(atom_id=atom_id)
 
-            asset.save()
+            comment.site = author_site
+            comment.content_object = parent_asset
 
-            asset.private_to = parent_asset.private_to.all()
+            content_el = comment_el.find('{http://www.w3.org/2005/Atom}content')
+            assert content_el is not None, "Comment %s had no content?!" % atom_id
+            content_content_type = content_el.get('type')
+            if content_content_type == 'html':
+                html = content_el.text
+            elif content_content_type == 'xhtml':
+                html_el = content_el.find('{http://www.w3.org/1999/xhtml}div')
+                html = html_el.text or u''
+                html += u''.join(ElementTree.tostring(el) for el in html_el.getchildren())
+            else:
+                assert False, "Comment %s had unexpected content of type %r?!" % (atom_id, content_content_type)
+            comment.comment = html
+
+            publ = comment_el.findtext('{http://www.w3.org/2005/Atom}published')
+            publ_dt = datetime.strptime(publ, '%Y-%m-%dT%H:%M:%SZ')
+            comment.submit_date = publ_dt
+
+            # Comments are marked with the privacy of their parent assets, so just assume they're all public.
+            privacy_el = comment_el.find('{http://www.sixapart.com/ns/atom/privacy}privacy/{http://www.sixapart.com/ns/atom/privacy}allow')
+            assert privacy_el is not None, "Comment %s had no privacy element?!" % atom_id
+            assert privacy_el.get('name') in ('Everyone', 'Friends', 'Family', 'Neighborhood'), "Privacy for comment %s wasn't Everyone?!" % atom_id
+            comment.is_public = True
+
+            comment.user_name = comment_el.findtext('{http://www.w3.org/2005/Atom}author/{http://www.w3.org/2005/Atom}name')
+            comment.user_url = comment_el.findtext('{http://www.w3.org/2005/Atom}author/{http://www.w3.org/2005/Atom}uri')
+            comment.user = self.person_for_openid(comment.user_url, comment.user_name).user
+
+            comment.save()
