@@ -196,6 +196,7 @@ class Command(ImportCommand):
             for image_asset in image_assets:
                 image_asset.posts.add(asset)
 
+            asset.private = False
             asset_groups = list()
             privacies = asset_el.findall('{http://www.sixapart.com/ns/atom/privacy}privacy/{http://www.sixapart.com/ns/atom/privacy}allow')
             for privacy in privacies:
