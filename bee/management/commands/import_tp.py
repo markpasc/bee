@@ -148,7 +148,7 @@ class Command(ImportCommand):
         post.avatar = self.avatar
 
         post.title = obj['title']
-        post.slug = self.unused_slug_for_post(post, (obj['filename'],))
+        post.slug = self.unused_slug_for_post(post, (obj['filename'], obj['title']))
         post.html = obj['renderedContent']
         post.html, assets = self.import_images_for_post_html(post)
 
