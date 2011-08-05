@@ -1,3 +1,4 @@
+import copy
 from datetime import datetime
 from itertools import ifilterfalse
 import logging
@@ -103,6 +104,14 @@ class Command(ImportCommand):
         publ_dt = datetime.strptime(publ, '%Y-%m-%dT%H:%M:%SZ')
         asset.published = publ_dt
 
+        def el_to_html(orig_el):
+            el = copy.deepcopy(orig_el)
+            for sub_el in el.getiterator():
+                sub_el.tag = sub_el.tag.split('}', 1)[-1]
+            text = ElementTree.tostring(el, 'UTF-8').decode('utf8')
+            text = re.sub(r'<\?[^>]*\?>', u'', text)
+            return text
+
         content_el = asset_el.find('{http://www.w3.org/2005/Atom}content')
         if content_el is None:
             html = ''
@@ -113,7 +122,7 @@ class Command(ImportCommand):
             elif content_type == 'xhtml':
                 html_el = content_el.find('{http://www.w3.org/1999/xhtml}div')
                 html = html_el.text or u''
-                html += u''.join(ElementTree.tostring(el) for el in html_el.getchildren())
+                html += u''.join(el_to_html(el) for el in html_el.getchildren())
         asset.html = html
 
         author_el = asset_el.find('{http://www.w3.org/2005/Atom}author')
