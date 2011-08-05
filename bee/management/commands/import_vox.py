@@ -40,6 +40,12 @@ class Command(ImportCommand):
             dest='import_posts',
             default=True,
         ),
+        make_option('--skip-comments',
+            help='Skip import of comments',
+            action='store_false',
+            dest='import_comments',
+            default=True,
+        )
     )
 
     def handle(self, source, **options):
@@ -53,7 +59,8 @@ class Command(ImportCommand):
 
         if options.get('import_posts'):
             self.import_assets(tree)
-        self.import_comments(tree)
+        if options.get('import_comments'):
+            self.import_comments(tree)
 
     def person_for_openid(self, openid, display_name):
         backend = social_auth.backends.OpenIDBackend()
@@ -138,13 +145,16 @@ class Command(ImportCommand):
     def filename_for_image_url(self, image_url):
         mo = re.match(r'http://a\d+\.vox\.com/(?P<asset_id>6a\w+)', image_url)
         if mo is None:
+            logging.debug("URL %r wasn't asset URL shaped, not importing", image_url)
             return
         asset_id = mo.group('asset_id')
 
         for ext in ('gif', 'jpg', 'png'):
             img_path = join(self.sourcepath, 'assets', asset_id + '-pi.' + ext)
             if os.access(img_path, os.R_OK):
+                logging.debug("Found asset at %r! importing!", img_path)
                 return img_path
+            logging.debug("Couldn't find asset at %r", img_path)
 
         return
 
