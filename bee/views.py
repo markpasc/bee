@@ -5,7 +5,7 @@ import logging
 
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseNotFound
 from django.shortcuts import render
 from django.template.response import TemplateResponse
@@ -177,6 +177,23 @@ def permalink(request, slug, author=None):
     }
 
     return TemplateResponse(request, 'permalink.html', data)
+
+
+@author_site
+def archive(request, author=None):
+    data = {
+        'author': author,
+    }
+    return TemplateResponse(request, 'archive.html', data)
+
+
+@author_site
+def archivedata(request, author=None):
+    posts = posts_for_request(request, author)
+    data_list = posts.extra(select={'published_date': 'date(published)'}).values('published_date').annotate(count=Count('id'))
+    data_dict = dict((datum['published_date'], datum['count']) for datum in data_list)
+    responsetext = json.dumps(data_dict, sort_keys=True, indent=4)
+    return HttpResponse(responsetext, content_type='application/json')
 
 
 @author_site
