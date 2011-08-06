@@ -101,9 +101,6 @@ class Command(ImportCommand):
             comment_author.save()
             ident_obj = backend.associate_auth(comment_author, openid, None, user_details)
 
-            ident_obj = bee.models.Identity(identifier=openid)
-            ident_obj.save()
-
         return ident_obj
 
     def make_my_openid(self, openid):
