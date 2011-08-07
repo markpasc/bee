@@ -54,6 +54,7 @@
                 .attr('class', 'day')
                 .attr('width', z)
                 .attr('height', z)
+                .on('click', function (d) { window.location = '/' + d.Date.replace(/-/g, '/') + '/' })
                 ;
 
             vis.selectAll('path.month')

@@ -8,6 +8,7 @@ urlpatterns = patterns('bee.views',
     url(r'^search/$', 'search', name='search'),
     url(r'^archive/$', 'archive', name='archive'),
     url(r'^archive/data/$', 'archivedata', name='archivedata'),
+    url(r'^(?P<year>\d{4})/(?P<month>\d\d)/(?P<day>\d\d)/$', 'day', name='day'),
     url(r'^(?P<slug>[\w-]+)$', 'permalink', name='permalink'),
 
     url(r'^_/editor$', 'editor', name='editor'),

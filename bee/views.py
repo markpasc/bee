@@ -82,6 +82,21 @@ def index(request, author=None, before=None):
     return TemplateResponse(request, 'index.html', data)
 
 
+@author_site
+def day(request, year, month, day, author=None):
+    that_day = datetime.datetime(int(year), int(month), int(day), 0, 0, 0)
+
+    posts = posts_for_request(request, author)
+    posts = posts.filter(published__gte=that_day, published__lt=that_day + datetime.timedelta(days=1))
+    posts = posts.order_by('-published', '-id')
+
+    data = {
+        'author': author,
+        'posts': posts,
+    }
+    return TemplateResponse(request, 'index.html', data)
+
+
 class RealAtomFeed(feedgenerator.Atom1Feed):
 
     def add_item_elements(self, handler, item):
