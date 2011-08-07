@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from functools import wraps
 import json
 import logging
@@ -65,7 +65,7 @@ def posts_for_request(request, author):
 def index(request, author=None, before=None):
     posts = posts_for_request(request, author)
     if before is None:
-        posts = posts.filter(published__lt=datetime.utcnow())
+        posts = posts.filter(published__lt=datetime.datetime.utcnow())
     else:
         try:
             before_post = Post.objects.get(slug=before)
@@ -109,7 +109,7 @@ def feed(request, author=None):
         feed_url=request.build_absolute_uri(), feed_guid=feed_id)
 
     posts = posts_for_request(request, author)
-    posts = posts.filter(published__lt=datetime.utcnow()).order_by('-published', '-id')
+    posts = posts.filter(published__lt=datetime.datetime.utcnow()).order_by('-published', '-id')
     posts = posts[:20]
 
     for post in posts:
@@ -191,7 +191,7 @@ def archive(request, author=None):
 def archivedata(request, author=None):
     posts = posts_for_request(request, author)
     data_list = posts.extra(select={'published_date': 'date(published)'}).values('published_date').annotate(count=Count('id'))
-    data_dict = dict((datum['published_date'], datum['count']) for datum in data_list)
+    data_dict = dict((datum['published_date'].isoformat() if isinstance(datum['published_date'], datetime.date) else datum['published_date'], datum['count']) for datum in data_list)
     responsetext = json.dumps(data_dict, sort_keys=True, indent=4)
     return HttpResponse(responsetext, content_type='application/json')
 
