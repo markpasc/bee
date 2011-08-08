@@ -77,7 +77,7 @@
             d3.json('{% url archivedata %}', function (data) {
                 var color = d3.scale.quantize()
                     .domain([0, 15])
-                    .range(d3.range(9));
+                    .range(d3.range(3, 9));
 
                 vis.selectAll("rect.day")
                     .attr("class", function(d) { return "day q" + color(data[d.Date]) + "-9"; })
