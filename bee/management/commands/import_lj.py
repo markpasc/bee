@@ -10,6 +10,7 @@ import random
 import re
 import string
 import sys
+from urllib import unquote
 from xml.etree import ElementTree
 
 from BeautifulSoup import BeautifulSoup
@@ -183,7 +184,7 @@ class Command(ImportCommand):
         if not matching_maps:
             return
         map_url, map_path = matching_maps[0]
-        img_path = join(map_path, image_url[len(map_url):])
+        img_path = join(map_path, unquote(image_url[len(map_url):]))
 
         return img_path
 
