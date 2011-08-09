@@ -183,7 +183,7 @@ class Command(ImportCommand):
         if not matching_maps:
             return
         map_url, map_path = matching_maps[0]
-        img_path = join(map_path, img_src[len(map_url):])
+        img_path = join(map_path, image_url[len(map_url):])
 
         return img_path
 
