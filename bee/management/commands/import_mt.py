@@ -5,6 +5,7 @@ from optparse import make_option
 import os
 from os.path import join, abspath
 import re
+from urlparse import urlsplit
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -198,11 +199,25 @@ class Command(ImportCommand):
         grafs = text.split(u'\n\n')
         return u'\n\n'.join(graf if self.html_block_re.match(graf) else u'<p>{0}</p>'.format(graf.replace(u'\n', u'<br>\n')) for graf in grafs)
 
+    def generate_atom_id(self, mt_entry):
+        # Generate an Atom ID like Movable Type does.
+        mt_blog = mt_entry.blog
+        site_url_parts = urlsplit(mt_blog.site_url)
+        data = {
+            'host': site_url_parts.netloc,
+            'path': site_url_parts.path,
+            'year': mt_entry.created_on.year,
+            'blog_id': mt_blog.id,
+            'entry_id': mt_entry.id,
+        }
+        return 'tag:{host},{year}:{path}/{blog_id}.{entry_id}'.format(**data)
+
     def import_entries(self, entries):
         for mt_entry in entries:
             atom_id = mt_entry.atom_id
-            if atom_id is None:
-                raise ValueError("Post %r #%d has no Atom ID aiee!!" % (mt_entry.title, mt_entry.id))
+            if not atom_id:
+                atom_id = self.generate_atom_id(mt_entry)
+                logging.debug('GENERATED Atom ID %r for entry %r (#%d %s)', atom_id, mt_entry.title, mt_entry.id, mt_entry.basename)
 
             try:
                 post = bee.models.Post.objects.get(atom_id=atom_id)
