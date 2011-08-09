@@ -13,6 +13,12 @@
 
     <meta name="robots" content="noindex">
     <link rel="alternate" type="application/atom+xml" href="{% url feed %}">
+
+    <style type="text/css">
+        rect.q3-9, rect.q4-9, rect.q5-9, rect.q6-9, rect.q7-9, rect.q8-9, rect.q9-9 {
+            cursor: pointer;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -21,7 +27,7 @@
 
     <script type="text/javascript">
 
-        function setUpCalendar() {
+        function setUpCalendar(firstYear, lastYear, maxPosts, postsPerDay) {
     
             var w = $('#calendar').innerWidth(),
                 pw = 20,
@@ -31,7 +37,7 @@
 
             var vis = d3.select('#calendar')
                 .selectAll('svg')
-                .data(d3.range(2001, 2012))
+                .data(d3.range(firstYear, lastYear + 1))
                 .enter().append('svg:svg')
                 .attr('width', w)
                 .attr('height', h)
@@ -74,18 +80,36 @@
                 })
                 ;
 
-            d3.json('{% url archivedata %}', function (data) {
-                var color = d3.scale.quantize()
-                    .domain([0, 15])
-                    .range(d3.range(3, 9));
+            var color = d3.scale.quantize()
+                .domain([0, maxPosts + 1])
+                .range(d3.range(3, 9));
 
-                vis.selectAll("rect.day")
-                    .attr("class", function(d) { return "day q" + color(data[d.Date]) + "-9"; })
-                    ;
+            vis.selectAll("rect.day")
+                .attr("class", function(d) { return "day q" + (color(postsPerDay[d.Date]) || 0) + "-9"; })
+                ;
+        }
+
+        function getArchiveData() {
+            $.getJSON('{% url archivedata %}', function (data, textStatus, jqXHR) {
+                var minYear = 3000, maxYear = 0, maxPosts = 0;
+                $.each(data, function (key, val) {
+                    var year = parseInt(key.substring(0, 4));
+                    if (year < minYear) {
+                        minYear = year;
+                    }
+                    else if (maxYear < year) {
+                        maxYear = year;
+                    }
+
+                    if (maxPosts < val) {
+                        maxPosts = val;
+                    }
+                });
+                setUpCalendar(minYear, maxYear, maxPosts, data);
             });
         }
-    
-        $(document).ready(setUpCalendar);
+
+        $(document).ready(getArchiveData);
     </script>
 
 {% endblock %}
