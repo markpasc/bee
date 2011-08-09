@@ -10,6 +10,8 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.base import ModelBase
+from django.template.defaultfilters import striptags
+from django.utils.text import truncate_words
 from markdown import markdown
 
 from bee.management.import_command import ImportCommand
@@ -145,7 +147,7 @@ class Command(ImportCommand):
         from django.db import connections
         connections['mt'].cursor().execute('SELECT 1')
 
-        # Enable our own converter for "text" columns, in case there are posts that are some really old posts still in Latin-1 (like I have).
+        # Enable our own converter for "text" columns, in case there are some really old posts still in Latin-1 (like I have).
         from django.db.backends.sqlite3.base import Database
         Database.register_converter('text', self.convert_text)
 
@@ -207,7 +209,6 @@ class Command(ImportCommand):
             except bee.models.Post.DoesNotExist:
                 post = bee.models.Post(atom_id=atom_id)
 
-            post.title = mt_entry.title or ''  # striptags?
             post.author = self.user
             post.published = mt_entry.created_on
 
@@ -227,6 +228,12 @@ class Command(ImportCommand):
             post.html = '' if mt_entry.text is None else htmlize(mt_entry.text)
             if mt_entry.text_more is not None:
                 post.html = u'\n\n'.join((post.html, htmlize(mt_entry.text_more)))
+
+            # Ignore the title if it's the first five words of the post (it was autosummarized).
+            if not mt_entry.title or truncate_words(striptags(post.html), 5, '') == mt_entry.title:
+                post.title = ''
+            else:
+                post.title = mt_entry.title
 
             post.html, assets = self.import_images_for_post_html(post)
 
