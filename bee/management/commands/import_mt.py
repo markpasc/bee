@@ -19,6 +19,9 @@ from bee.management.import_command import ImportCommand
 import bee.models
 
 
+STATUS_HOLD, STATUS_RELEASE, STATUS_REVIEW, STATUS_FUTURE, STATUS_JUNK = range(1, 6)
+
+
 class MtType(ModelBase):
 
     def add_to_class(cls, name, value):
@@ -256,7 +259,9 @@ class Command(ImportCommand):
                 basename = mt_entry.basename.replace('_', '-')
                 post.slug = self.unused_slug_for_post(post, (basename, mt_entry.title))
 
-            post.private = False
+            # Only published posts (even if they're in the future) are public.
+            post.private = True if mt_entry.status not in (STATUS_RELEASE, STATUS_FUTURE) else False
+
             post.save()
 
             for asset in assets:
