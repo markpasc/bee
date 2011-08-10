@@ -1,3 +1,4 @@
+from functools import wraps
 from os.path import basename
 
 from django.contrib import admin
@@ -5,7 +6,19 @@ from django.contrib import admin
 from bee.models import *
 
 
-admin.site.register(TrustGroup)
+def desc(**kwargs):
+    def derp(fn):
+        for k, v in kwargs.iteritems():
+            setattr(fn, k, v)
+        return fn
+    return derp
+
+
+class TrustGroupAdmin(admin.ModelAdmin):
+    list_display = ('display_name', 'user', 'tag')
+    list_filter = ('user', 'tag')
+
+admin.site.register(TrustGroup, TrustGroupAdmin)
 
 
 class AssetAdmin(admin.ModelAdmin):
@@ -32,6 +45,22 @@ class PostAdmin(admin.ModelAdmin):
     list_filter = ('author',)
     prepopulated_fields = {'slug': ('title',)}
     search_fields = ('title', 'slug', 'html')
+
+    @desc(short_description='Privatize selected posts')
+    def make_private(self, request, queryset):
+        queryset.update(private=True)
+
+    @desc(short_description='Entrust selected posts')
+    def make_trusted(self, request, queryset):
+        queryset.update(private=True)
+        trustgroup = None
+        for obj in queryset:
+            if trustgroup is None:
+                trustgroup, created = TrustGroup.objects.get_or_create(user=obj.author, tag='trusted',
+                    defaults={'display_name': 'Trusted'})
+            obj.private_to = [trustgroup]
+
+    actions = [make_private, make_trusted]
 
 admin.site.register(Post, PostAdmin)
 
