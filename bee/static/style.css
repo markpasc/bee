@@ -284,4 +284,5 @@ button.ui-multiselect, .ui-multiselect-menu {
     font-size: 0.8em;
     border-radius: 5px;
     -moz-border-radius: 5px;
+    z-index: 7;
 }
