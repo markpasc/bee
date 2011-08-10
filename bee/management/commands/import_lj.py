@@ -309,47 +309,50 @@ class Command(ImportCommand):
                 post.slug = self.unused_slug_for_post(post, possible_slugs())
 
             # Pre-save the post in case we want to assign trust groups.
+            post_is_new = not post.pk
             post.save()
 
             for asset in assets:
                 asset.posts.add(post)
 
-            security = event.get('security')
-            if security == 'private':
-                logging.debug('Oh ho post %s is all fancy private', ditemid)
-                post.private = True
-            elif security == 'usemask':
-                bin = lambda s: str(s) if s<=1 else bin(s>>1) + str(s&1)
+            if post_is_new:
+                security = event.get('security')
+                if security == 'private':
+                    logging.debug('Oh ho post %s is all fancy private', ditemid)
+                    post.private = True
+                elif security == 'usemask':
+                    bin = lambda s: str(s) if s<=1 else bin(s>>1) + str(s&1)
 
-                mask = int(event.get('allowmask'))
-                logging.debug('Post %s has mask %s?', ditemid, bin(mask))
+                    mask = int(event.get('allowmask'))
+                    logging.debug('Post %s has mask %s?', ditemid, bin(mask))
 
-                if mask == 1:
-                    mask_groups = [all_friends_group]
-                    # Plus all the other bits are 0, so we'll add no other groups.
+                    if mask == 1:
+                        mask_groups = [all_friends_group]
+                        # Plus all the other bits are 0, so we'll add no other groups.
+                    else:
+                        mask_groups = list()
+
+                    for i in range(1, 30):
+                        mask = mask >> 1
+                        if mask == 0:
+                            break
+                        logging.debug('    Remaining mask %s', bin(mask))
+                        if mask & 0x01:
+                            logging.debug('    Yay %s has group %d!', ditemid, i)
+                            if i in group_objs:
+                                logging.debug('    And group %d exists woohoo!!', i)
+                                mask_groups.append(group_objs[i])
+
+                    logging.debug('So post %s gets %d groups', ditemid, len(mask_groups))
+                    post.private = True
+                    post.private_to = mask_groups
                 else:
-                    mask_groups = list()
+                    # Public!
+                    post.private = False
+                    post.private_to = []
 
-                for i in range(1, 30):
-                    mask = mask >> 1
-                    if mask == 0:
-                        break
-                    logging.debug('    Remaining mask %s', bin(mask))
-                    if mask & 0x01:
-                        logging.debug('    Yay %s has group %d!', ditemid, i)
-                        if i in group_objs:
-                            logging.debug('    And group %d exists woohoo!!', i)
-                            mask_groups.append(group_objs[i])
+                post.save()
 
-                logging.debug('So post %s gets %d groups', ditemid, len(mask_groups))
-                post.private = True
-                post.private_to = mask_groups
-            else:
-                # Public!
-                post.private = False
-                post.private_to = []
-
-            post.save()
             logging.info('Saved new post %s (%s) as #%d', ditemid, post.title, post.pk)
 
             # Import the comments.

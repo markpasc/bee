@@ -273,24 +273,28 @@ class Command(ImportCommand):
             else:
                 raise ValueError("Unknown text format %r for post %r" % (post.text_format, atom_id))
 
-            post.html = '' if mt_entry.text is None else htmlize(mt_entry.text)
+            html = '' if mt_entry.text is None else htmlize(mt_entry.text)
             if mt_entry.text_more is not None:
-                post.html = u'\n\n'.join((post.html, htmlize(mt_entry.text_more)))
+                html = u'\n\n'.join((html, htmlize(mt_entry.text_more)))
 
             # Ignore the title if it's the first five words of the post (it was autosummarized).
-            if not mt_entry.title or truncate_words(striptags(post.html), 5, '') == mt_entry.title:
+            if not mt_entry.title or truncate_words(striptags(html), 5, '') == mt_entry.title:
                 post.title = ''
             else:
                 post.title = mt_entry.title
 
-            post.html, assets = self.import_images_for_post_html(post)
+            if not post.pk:
+                post.html = html
+                post.html, assets = self.import_images_for_post_html(post)
 
             if not post.slug:
                 basename = mt_entry.basename.replace('_', '-')
                 post.slug = self.unused_slug_for_post(post, (basename, mt_entry.title))
 
             # Only published posts (even if they're in the future) are public.
-            post.private = True if mt_entry.status not in (STATUS_RELEASE, STATUS_FUTURE) else False
+            if not post.pk:
+                post.private = True if mt_entry.status not in (STATUS_RELEASE, STATUS_FUTURE) else False
+
             post.comments_enabled = True if mt_entry.allow_comments else False
 
             post.save()
