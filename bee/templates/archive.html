@@ -40,10 +40,10 @@
                 .data(d3.range(firstYear, lastYear + 1))
                 .enter().append('svg:svg')
                 .attr('width', w)
-                .attr('height', h)
+                .attr('height', h + 2)
                 .attr('class', 'Blues')
                 .append('svg:g')
-                .attr('transform', 'translate(' + pw + ',' + 0 + ')')
+                .attr('transform', 'translate(' + pw + ',' + 1 + ')')
                 ;
 
             vis.append('svg:text')
