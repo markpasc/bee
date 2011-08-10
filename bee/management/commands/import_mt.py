@@ -3,17 +3,20 @@ import json
 import logging
 from optparse import make_option
 import os
-from os.path import join, abspath
+from os.path import join, abspath, dirname
 import re
+from urllib import unquote
 from urlparse import urlsplit
 
 from django.conf import settings
 from django.contrib.auth.models import User
+import django.contrib.comments
 from django.db import models
 from django.db.models.base import ModelBase
 from django.template.defaultfilters import striptags
 from django.utils.text import truncate_words
 from markdown import markdown
+import social_auth.backends
 
 from bee.management.import_command import ImportCommand
 import bee.models
@@ -52,6 +55,15 @@ class Author(MtObject):
     id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=50)
     nickname = models.CharField(max_length=50)
+    typecode = models.IntegerField(db_column='type')
+
+
+class OpenIDIdentity(MtObject):
+
+    id = models.IntegerField(primary_key=True)
+    author = models.ForeignKey(Author)
+    pic_url = models.CharField(max_length=255, blank=True, null=True)
+    url = models.CharField(max_length=255, blank=True, null=True)
 
 
 class Blog(MtObject):
@@ -88,6 +100,16 @@ class Comment(MtObject):
     entry = models.ForeignKey(Entry)
     commenter = models.ForeignKey(Author, blank=True, null=True)
 
+    author = models.CharField(max_length=100, blank=True, null=True)
+    email = models.CharField(max_length=75, blank=True, null=True)
+    url = models.CharField(max_length=255, blank=True, null=True)
+    ip = models.CharField(max_length=16, blank=True, null=True)
+
+    text = models.TextField(blank=True, null=True)
+    visible = models.BooleanField(blank=True)
+    created_on = models.DateTimeField(blank=True, null=True)
+    modified_on = models.DateTimeField(blank=True)
+
 
 class Command(ImportCommand):
 
@@ -122,6 +144,8 @@ class Command(ImportCommand):
         self.set_up_database(dbpath)
 
         self.user = User.objects.get(pk=1)
+        author_site_bridge = bee.models.AuthorSite.objects.get(author=self.user)
+        self.author_site = author_site_bridge.site
 
         action = options['action']
         if action == 'list_blogs':
@@ -142,6 +166,8 @@ class Command(ImportCommand):
             self.import_entries(entries)
 
     def set_up_database(self, dbpath):
+        self.dbpath = dbpath
+
         settings.DATABASES['mt'] = {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': abspath(dbpath),
@@ -192,9 +218,13 @@ class Command(ImportCommand):
 
     def filename_for_image_url(self, image_url):
         # TODO: see if we have some images to import from disk
-        return
+        url_parts = urlsplit(image_url)
+        path_parts = [unquote(part) for part in url_parts.path.split('/') if part]
+        image_path = join(dirname(self.dbpath), url_parts.netloc, *path_parts)
+        logging.debug('~~ LOOKING FOR IMAGE %r. IS IT AT %r? ~~', image_url, image_path)
+        return image_path
 
-    html_block_re = re.compile(r'\A </? (?: h1|h2|h3|h4|h5|h6|table|ol|dl|ul|menu|dir|p|pre|center|form|fieldset|select|blockquote|address|div|hr )', re.MULTILINE | re.DOTALL | re.VERBOSE)
+    html_block_re = re.compile(r'\A </? (?: h1|h2|h3|h4|h5|h6|table|ol|dl|ul|menu|dir|p|pre|center|form|fieldset|select|blockquote|address|div|hr )', re.MULTILINE | re.DOTALL | re.IGNORECASE | re.VERBOSE)
 
     def html_text_transform(self, text):
         # Convert line breaks like Movable Type does.
@@ -261,6 +291,7 @@ class Command(ImportCommand):
 
             # Only published posts (even if they're in the future) are public.
             post.private = True if mt_entry.status not in (STATUS_RELEASE, STATUS_FUTURE) else False
+            post.comments_enabled = True if mt_entry.allow_comments else False
 
             post.save()
 
@@ -269,4 +300,63 @@ class Command(ImportCommand):
 
             logging.debug('Imported %r (%r)!', post.title, atom_id)
 
-            # TODO: Import comments for that post.
+            self.import_comments(post, mt_entry)
+
+    def person_for_commenter(self, mt_author):
+        if mt_author is None:
+            return None
+
+        idents = mt_author.openididentity_set.using('mt').all()
+        if not idents:
+            return None
+
+        openids = set(ident.url for ident in idents)
+        assert len(openids) < 2, "Commenter %r has too many identities (%d)!" % (mt_author, len(idents))
+        (openid,) = openids
+
+        backend = social_auth.backends.OpenIDBackend()
+        try:
+            ident_obj = backend.get_social_auth_user(openid)
+        except social_auth.models.UserSocialAuth.DoesNotExist:
+            # make a user then i guess
+            user_details = {
+                'username': mt_author.name,
+                'email': '',
+                'first_name': mt_author.nickname,
+            }
+            username = backend.username(user_details)
+            user = User.objects.create_user(username=username, email='')
+            user.first_name = user_details['first_name']
+            user.save()
+            ident_obj = backend.associate_auth(user, openid, None, user_details)
+
+        # TODO: make an avatar from the pic url
+
+        return ident_obj.user
+
+
+    def import_comments(self, post, mt_entry):
+        comment_cls = django.contrib.comments.get_model()
+        for mt_comment in mt_entry.comment_set.using('mt').all():
+            atom_id = '%s.%d' % (post.atom_id, mt_comment.id)
+            try:
+                comment = comment_cls.objects.get(atom_id=atom_id)
+            except comment_cls.DoesNotExist:
+                comment = comment_cls(atom_id=atom_id)
+
+            comment.content_object = post
+            comment.site = self.author_site
+            comment.submit_date = mt_comment.created_on
+            comment.is_public = mt_comment.visible
+            comment.ip_address = mt_comment.ip
+
+            # TODO: is the text html or does it want formatting?
+            comment.comment = mt_comment.text
+
+            comment.user_name = mt_comment.author or ''
+            comment.user_email = mt_comment.email or ''
+            comment.user_url = mt_comment.url or ''
+            comment.user = self.person_for_commenter(mt_comment.commenter)
+
+            comment.save()
+            logging.debug('Saved comment %r!', atom_id)
