@@ -18,12 +18,18 @@
         rect.q3-9, rect.q4-9, rect.q5-9, rect.q6-9, rect.q7-9, rect.q8-9, rect.q9-9 {
             cursor: pointer;
         }
+        p#about {
+            font-size: 0.8em;
+            text-align: center;
+        }
     </style>
 {% endblock %}
 
 {% block content %}
 
     <div id="calendar"></div>
+
+    <p id="about">Made with <a href="http://mbostock.github.com/d3/">d3.js</a> as in <a href="http://mbostock.github.com/d3/ex/calendar.html">the calendar view example</a>.</p>
 
     <script type="text/javascript">
 
