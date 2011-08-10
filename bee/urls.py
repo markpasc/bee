@@ -3,12 +3,13 @@ from django.conf.urls.defaults import patterns, include, url
 
 urlpatterns = patterns('bee.views',
     url(r'^$', 'index', name='index'),
-    url(r'^before/(?P<before>[\w-]+)$', 'index', name='index_before'),
+    url(r'^before/(?P<before>[\w-]+)$', 'index',
+        {'template_name': 'index_before.html'}, name='index_before'),
+    url(r'^(?P<year>\d{4})/(?P<month>\d\d)/(?P<day>\d\d)/$', 'day', name='day'),
     url(r'^feed/$', 'feed', name='feed'),
     url(r'^search/$', 'search', name='search'),
     url(r'^archive/$', 'archive', name='archive'),
     url(r'^archive/data/$', 'archivedata', name='archivedata'),
-    url(r'^(?P<year>\d{4})/(?P<month>\d\d)/(?P<day>\d\d)/$', 'day', name='day'),
     url(r'^(?P<slug>[\w-]+)$', 'permalink', name='permalink'),
 
     url(r'^_/editor$', 'editor', name='editor'),

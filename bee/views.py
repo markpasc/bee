@@ -62,7 +62,7 @@ def posts_for_request(request, author):
 
 
 @author_site
-def index(request, author=None, before=None):
+def index(request, author=None, before=None, template_name='index.html'):
     posts = posts_for_request(request, author)
     if before is None:
         posts = posts.filter(published__lt=datetime.datetime.utcnow())
@@ -75,11 +75,13 @@ def index(request, author=None, before=None):
             Q(published=before_post.published, id__lt=before_post.id))
     posts = posts.order_by('-published', '-id')
 
+    all_posts = posts[:21]
     data = {
         'author': author,
-        'posts': posts[:20],
+        'posts': all_posts[:20],
+        'more_url': reverse('index_before', kwargs={'before': all_posts[19].slug}) if len(all_posts) == 21 else None,
     }
-    return TemplateResponse(request, 'index.html', data)
+    return TemplateResponse(request, template_name, data)
 
 
 @author_site
@@ -92,9 +94,10 @@ def day(request, year, month, day, author=None):
 
     data = {
         'author': author,
+        'day': that_day,
         'posts': posts,
     }
-    return TemplateResponse(request, 'index.html', data)
+    return TemplateResponse(request, 'day.html', data)
 
 
 class RealAtomFeed(feedgenerator.Atom1Feed):
