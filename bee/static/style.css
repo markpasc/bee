@@ -231,6 +231,12 @@ pre.wide { white-space: pre; }
 #comments .comment-timestamp {
     font-size: 0.8em;
 }
+#comments .comment         { margin-left: 10em; }
+#comments .comment-depth-4 { margin-left: 8em; }
+#comments .comment-depth-3 { margin-left: 6em; }
+#comments .comment-depth-2 { margin-left: 4em; }
+#comments .comment-depth-1 { margin-left: 2em; }
+#comments .comment-depth-0 { margin-left: 0em; }
 
 #comment-form label, #sign-in-form label {
     display: inline-block;

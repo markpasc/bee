@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load get_comment_tree from bee_comments %}
 {% load comments %}
 {% load bee %}
 
@@ -39,12 +40,12 @@
 
     {% include "post.html" %}
 
-    {% get_comment_list for post as comments %}
+    {% get_comment_tree for post as comments %}
     {% for comment in comments %}
         {% if forloop.first %}
         <div id="comments" class="entry">
         {% endif %}
-            <div id="comment-{{ comment.pk }}" class="comment">
+            <div id="comment-{{ comment.pk }}" class="comment comment-depth-{{ comment.depth|default:0 }}">
                 <p class="comment-header">
                     {% if comment.user %}
                         <span class="commenter-name">{{ comment.user.get_full_name|default:comment.user.username }}</span>

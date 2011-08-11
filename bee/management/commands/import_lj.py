@@ -151,9 +151,11 @@ class Command(ImportCommand):
             self.format_soup(content_root)
             comment.comment = str(content_root)
 
-        comment.content_object = asset
-        # TODO: track the thread root?
-        #comment.in_thread_of = asset.in_thread_of or asset
+        if isinstance(asset, comment_cls):
+            comment.content_object = asset.content_object
+            comment.in_reply_to = asset
+        else:
+            comment.content_object = asset
 
         poster = comment_el.get('poster')
         if poster:
