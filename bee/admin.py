@@ -1,4 +1,3 @@
-from functools import wraps
 from os.path import basename
 
 from django.contrib import admin
