@@ -91,6 +91,14 @@ class Command(ImportCommand):
         except social_auth.models.UserSocialAuth.DoesNotExist:
             ident_obj = backend.associate_auth(person, openid, None, {})
 
+    def el_to_html(self, orig_el):
+        el = copy.deepcopy(orig_el)
+        for sub_el in el.getiterator():
+            sub_el.tag = sub_el.tag.split('}', 1)[-1]
+        text = ElementTree.tostring(el, 'UTF-8').decode('utf8')
+        text = re.sub(r'<\?[^>]*\?>', u'', text)
+        return text
+
     def basic_asset_for_element(self, asset_el):
         atom_id = asset_el.findtext('{http://www.w3.org/2005/Atom}id')
         logging.debug('Parsing asset %s', atom_id)
@@ -104,14 +112,6 @@ class Command(ImportCommand):
         publ_dt = datetime.strptime(publ, '%Y-%m-%dT%H:%M:%SZ')
         asset.published = publ_dt
 
-        def el_to_html(orig_el):
-            el = copy.deepcopy(orig_el)
-            for sub_el in el.getiterator():
-                sub_el.tag = sub_el.tag.split('}', 1)[-1]
-            text = ElementTree.tostring(el, 'UTF-8').decode('utf8')
-            text = re.sub(r'<\?[^>]*\?>', u'', text)
-            return text
-
         content_el = asset_el.find('{http://www.w3.org/2005/Atom}content')
         if content_el is None:
             html = ''
@@ -122,7 +122,7 @@ class Command(ImportCommand):
             elif content_type == 'xhtml':
                 html_el = content_el.find('{http://www.w3.org/1999/xhtml}div')
                 html = html_el.text or u''
-                html += u''.join(el_to_html(el) for el in html_el.getchildren())
+                html += u''.join(self.el_to_html(el) for el in html_el.getchildren())
         asset.html = html
 
         author_el = asset_el.find('{http://www.w3.org/2005/Atom}author')
@@ -261,7 +261,7 @@ class Command(ImportCommand):
             elif content_content_type == 'xhtml':
                 html_el = content_el.find('{http://www.w3.org/1999/xhtml}div')
                 html = html_el.text or u''
-                html += u''.join(ElementTree.tostring(el) for el in html_el.getchildren())
+                html += u''.join(self.el_to_html(el) for el in html_el.getchildren())
             else:
                 assert False, "Comment %s had unexpected content of type %r?!" % (atom_id, content_content_type)
             comment.comment = html
@@ -278,6 +278,9 @@ class Command(ImportCommand):
 
             comment.user_name = comment_el.findtext('{http://www.w3.org/2005/Atom}author/{http://www.w3.org/2005/Atom}name')
             comment.user_url = comment_el.findtext('{http://www.w3.org/2005/Atom}author/{http://www.w3.org/2005/Atom}uri')
-            comment.user = self.person_for_openid(comment.user_url, comment.user_name).user
+            if comment.user_url != 'http://www.vox.com/gone/':
+                comment.user = self.person_for_openid(comment.user_url, comment.user_name).user
+            else:
+                comment.user = None
 
             comment.save()
