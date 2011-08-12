@@ -73,6 +73,7 @@ class Blog(MtObject):
     site_url = models.CharField(max_length=255)
     archive_url = models.CharField(max_length=255, blank=True, null=True)
     archive_tmpl_individual = models.CharField(max_length=255, blank=True, null=True)
+    convert_paras_comments = models.CharField(max_length=30, blank=True, null=True)
     file_extension = models.CharField(max_length=10, blank=True, null=True)
     old_style_archive_links = models.BooleanField(blank=True)
 
@@ -248,6 +249,17 @@ class Command(ImportCommand):
         }
         return 'tag:{host},{year}:{path}/{blog_id}.{entry_id}'.format(**data)
 
+    def htmlizer_for_text_format(self, text_format):
+        if text_format == 'markdown':
+            return markdown
+        elif text_format == '__default__':
+            return self.html_text_transform
+        elif text_format in (None, '', '0'):
+            # Yay, already HTML.
+            return lambda html: html
+
+        raise ValueError("Unknown text format %r" % (text_format,))
+
     def import_entries(self, entries):
         for mt_entry in entries:
             atom_id = mt_entry.atom_id
@@ -263,19 +275,7 @@ class Command(ImportCommand):
             post.author = self.user
             post.published = mt_entry.created_on
 
-            if mt_entry.text_format == 'markdown':
-                logging.debug('post %r is in markdown', atom_id)
-                htmlize = markdown
-            elif mt_entry.text_format == '__default__':
-                logging.debug('post %r is in convert-breaks', atom_id)
-                htmlize = self.html_text_transform
-            elif mt_entry.text_format in ('', '0'):
-                # Yay, already HTML.
-                logging.debug('post %r is already html, woot', atom_id)
-                htmlize = lambda x: x
-            else:
-                raise ValueError("Unknown text format %r for post %r" % (post.text_format, atom_id))
-
+            htmlize = self.htmlizer_for_text_format(mt_entry.text_format)
             html = '' if mt_entry.text is None else htmlize(mt_entry.text)
             if mt_entry.text_more is not None:
                 html = u'\n\n'.join((html, htmlize(mt_entry.text_more)))
@@ -286,9 +286,11 @@ class Command(ImportCommand):
             else:
                 post.title = mt_entry.title
 
+            # Only *use* that HTML if we're importing the post for the first time.
             if not post.pk:
                 post.html = html
-                post.html, assets = self.import_images_for_post_html(post)
+
+            post.html, assets = self.import_images_for_post_html(post)
 
             if not post.slug:
                 basename = mt_entry.basename.replace('_', '-')
@@ -363,9 +365,9 @@ class Command(ImportCommand):
 
         return ident_obj.user
 
-
     def import_comments(self, post, mt_entry):
         comment_cls = django.contrib.comments.get_model()
+        htmlize = self.htmlizer_for_text_format(mt_entry.blog.convert_paras_comments)
         for mt_comment in mt_entry.comment_set.using('mt').all():
             atom_id = '%s.%d' % (post.atom_id, mt_comment.id)
             try:
@@ -379,8 +381,7 @@ class Command(ImportCommand):
             comment.is_public = mt_comment.visible
             comment.ip_address = mt_comment.ip
 
-            # TODO: is the text html or does it want formatting?
-            comment.comment = mt_comment.text
+            comment.comment = htmlize(mt_comment.text)
 
             comment.user_name = mt_comment.author or ''
             comment.user_email = mt_comment.email or ''
