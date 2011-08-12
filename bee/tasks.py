@@ -18,7 +18,42 @@ def add(x, y):
 
 
 @task()
+def perform_for_author_posts_in_month(author_pk, year, month, callback):
+    """
+    Dispatch the callback with the PK of each post by the given author in the
+    given month.
+    """
+    start_date = datetime(year, month, 1, 0, 0, 0)
+    end_date = (start_date + timedelta(days=31)).replace(day=1)
+
+    posts = bee.models.Post.objects.filter(author=author_pk, published__gte=start_date, published__lt=end_date)
+    for post_pk in posts.values_list('pk', flat=True):
+        callback.delay(post_pk)
+
+
+@task()
+def perform_for_author_posts(author_pk, callback):
+    """
+    Dispatch `perform_for_author_posts_in_month` tasks for the given author
+    and callback in each month for which the author has posts.
+    """
+    author_posts = bee.models.Post.objects.filter(author=author_pk).values_list('published', flat=True)
+    start_date = author_posts.order_by('published')[0]
+    end_date = author_posts.order_by('-published')[0]
+
+    end_month = date(end_date.year, end_date.month, 1)
+    month = date(start_date.year, start_date.month, 1)
+    while month <= end_month:
+        perform_for_author_posts_in_month.delay(author_pk, month.year, month.month, callback)
+        month = (month + timedelta(days=31)).replace(day=1)
+
+
+@task()
 def find_404s_in_post(post_pk, author_domain):
+    """
+    Record any <a href> or <img src> links in the given post that have 404s as
+    `Link404Result` instances in the database.
+    """
     post = bee.models.Post.objects.values('html').get(pk=post_pk)
 
     author_url = urlunsplit(('http', author_domain, '/', '', ''))
@@ -53,26 +88,12 @@ def find_404s_in_post(post_pk, author_domain):
 
 
 @task()
-def find_404s_in_month(author_pk, year, month):
-    start_date = datetime(year, month, 1, 0, 0, 0)
-    end_date = (start_date + timedelta(days=31)).replace(day=1)
-
+def find_404s_for_author(author_pk):
+    """
+    Dispatch jobs to check all the given author's posts for 404s in <a href>
+    and <img src> URLs.
+    """
     author_site = bee.models.AuthorSite.objects.get(author=author_pk)
     author_domain = author_site.site.domain
 
-    posts = bee.models.Post.objects.filter(author=author_pk, published__gte=start_date, published__lt=end_date)
-    for post_pk in posts.values_list('pk', flat=True):
-        find_404s_in_post.delay(post_pk, author_domain)
-
-
-@task()
-def find_404s_in_author(author_pk):
-    author_posts = bee.models.Post.objects.filter(author=author_pk).values_list('published', flat=True)
-    start_date = author_posts.order_by('published')[0]
-    end_date = author_posts.order_by('-published')[0]
-
-    end_month = date(end_date.year, end_date.month, 1)
-    month = date(start_date.year, start_date.month, 1)
-    while month <= end_month:
-        find_404s_in_month(author_pk, month.year, month.month)
-        month = (month + timedelta(days=31)).replace(day=1)
+    perform_for_author_posts.delay(author_pk, find_404s_in_post.subtask(args=(author_domain,)))
