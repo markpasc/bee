@@ -11,6 +11,7 @@ import re
 import string
 import sys
 from urllib import unquote
+from urlparse import urlsplit, urljoin
 from xml.etree import ElementTree
 
 from BeautifulSoup import BeautifulSoup
@@ -205,7 +206,8 @@ class Command(ImportCommand):
         if atomid_prefix is None:
             atomid_prefix = 'urn:lj:%s:atom1:%s:' % (server_domain, username)
 
-        post_author = self.make_my_openid(openid_for(username))
+        author_openid = openid_for(username)
+        post_author = self.make_my_openid(author_openid)
 
         # First, if there's a FOAF, learn all my friends' names and faces.
         if foafsource:
@@ -316,6 +318,11 @@ class Command(ImportCommand):
 
             for asset in assets:
                 asset.posts.add(post)
+
+            legacy_url = urljoin(author_openid, '%s.html' % ditemid)
+            legacy_url_parts = urlsplit(legacy_url)
+            bee.models.PostLegacyUrl.objects.get_or_create(netloc=legacy_url_parts.netloc, path=legacy_url_parts.path,
+                defaults={'post': post})
 
             if post_is_new:
                 security = event.get('security')

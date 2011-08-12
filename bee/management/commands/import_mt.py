@@ -6,7 +6,7 @@ import os
 from os.path import join, abspath, dirname
 import re
 from urllib import unquote
-from urlparse import urlsplit
+from urlparse import urlsplit, urljoin
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -71,6 +71,10 @@ class Blog(MtObject):
     id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=255)
     site_url = models.CharField(max_length=255)
+    archive_url = models.CharField(max_length=255, blank=True, null=True)
+    archive_tmpl_individual = models.CharField(max_length=255, blank=True, null=True)
+    file_extension = models.CharField(max_length=10, blank=True, null=True)
+    old_style_archive_links = models.BooleanField(blank=True)
 
 
 class Entry(MtObject):
@@ -217,7 +221,6 @@ class Command(ImportCommand):
                 entry.num_comments or '')
 
     def filename_for_image_url(self, image_url):
-        # TODO: see if we have some images to import from disk
         url_parts = urlsplit(image_url)
         path_parts = [unquote(part) for part in url_parts.path.split('/') if part]
         image_path = join(dirname(self.dbpath), url_parts.netloc, *path_parts)
@@ -302,9 +305,31 @@ class Command(ImportCommand):
             for asset in assets:
                 asset.posts.add(post)
 
+            legacy_url_parts = urlsplit(self.archive_url_for_post(mt_entry))
+            bee.models.PostLegacyUrl.objects.get_or_create(netloc=legacy_url_parts.netloc, path=legacy_url_parts.path,
+                defaults={'post': post})
+
             logging.debug('Imported %r (%r)!', post.title, atom_id)
 
             self.import_comments(post, mt_entry)
+
+    def archive_url_for_post(self, mt_entry):
+        mt_blog = mt_entry.blog
+
+        # TODO: handle using the real blog.archive_tmpl_individual, but none of my blogs use it
+        assert not mt_blog.old_style_archive_links, 'Blog %r uses old style archive links :( :( :(' % (mt_blog.name,)
+        assert not mt_blog.archive_tmpl_individual, 'Blog %r uses an archive_tmpl_individual :(' % (mt_blog.name,)
+        archive_tmpl = '{year}/{month}/{basename}.{extension}'
+
+        data = {
+            'year': str(mt_entry.created_on.year),
+            'month': '%02d' % mt_entry.created_on.month,
+            'basename': mt_entry.basename,
+            'extension': mt_blog.file_extension or 'html',
+        }
+
+        blog_url = mt_blog.archive_url or mt_blog.site_url
+        return urljoin(blog_url, archive_tmpl.format(**data))
 
     def person_for_commenter(self, mt_author):
         if mt_author is None:

@@ -196,6 +196,10 @@ class Command(ImportCommand):
             for image_asset in image_assets:
                 image_asset.posts.add(asset)
 
+            legacy_url_parts = urlsplit(vox_url)
+            bee.models.PostLegacyUrl.objects.get_or_create(netloc=legacy_url_parts.netloc, path=legacy_url_parts.path,
+                defaults={'post': asset})
+
             asset.private = False
             asset_groups = list()
             privacies = asset_el.findall('{http://www.sixapart.com/ns/atom/privacy}privacy/{http://www.sixapart.com/ns/atom/privacy}allow')

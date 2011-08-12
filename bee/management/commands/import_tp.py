@@ -5,6 +5,7 @@ import os
 from os.path import join
 import re
 import sys
+from urlparse import urlsplit
 
 from BeautifulSoup import BeautifulSoup
 from django.contrib.auth.models import User
@@ -159,6 +160,10 @@ class Command(ImportCommand):
 
         for asset in assets:
             asset.posts.add(post)
+
+        legacy_url_parts = urlsplit(obj['permalinkUrl'])
+        bee.models.PostLegacyUrl.objects.get_or_create(netloc=legacy_url_parts.netloc, path=legacy_url_parts.path,
+            defaults={'post': post})
 
         self.import_comments(post, obj)
 

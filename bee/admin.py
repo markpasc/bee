@@ -64,6 +64,15 @@ class PostAdmin(admin.ModelAdmin):
 admin.site.register(Post, PostAdmin)
 
 
+class PostLegacyUrlAdmin(admin.ModelAdmin):
+    list_display = ('url', 'post')
+
+    def url(self, obj):
+        return u''.join((obj.netloc, obj.path))
+
+admin.site.register(PostLegacyUrl, PostLegacyUrlAdmin)
+
+
 class AuthorSiteAdmin(admin.ModelAdmin):
     list_display = ('author', 'site')
 

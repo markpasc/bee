@@ -133,6 +133,16 @@ class Asset(models.Model):
     original_url = models.CharField(max_length=255, unique=True, blank=True, null=True)
 
 
+class PostLegacyUrl(models.Model):
+
+    post = models.ForeignKey(Post)
+    netloc = models.CharField(max_length=90)
+    path = models.CharField(max_length=255)
+
+    class Meta:
+        unique_together = (('netloc', 'path'),)
+
+
 # TODO: is this really a siteinfo? with site's display name?
 class AuthorSite(models.Model):
 
