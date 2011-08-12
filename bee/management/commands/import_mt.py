@@ -308,8 +308,8 @@ class Command(ImportCommand):
                 asset.posts.add(post)
 
             legacy_url_parts = urlsplit(self.archive_url_for_post(mt_entry))
-            bee.models.PostLegacyUrl.objects.get_or_create(netloc=legacy_url_parts.netloc, path=legacy_url_parts.path,
-                defaults={'post': post})
+            bee.models.PostLegacyUrl.objects.get_or_create(post=post,
+                defaults={'netloc': legacy_url_parts.netloc, 'path': legacy_url_parts.path})
 
             logging.debug('Imported %r (%r)!', post.title, atom_id)
 

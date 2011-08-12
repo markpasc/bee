@@ -321,8 +321,8 @@ class Command(ImportCommand):
 
             legacy_url = urljoin(author_openid, '%s.html' % ditemid)
             legacy_url_parts = urlsplit(legacy_url)
-            bee.models.PostLegacyUrl.objects.get_or_create(netloc=legacy_url_parts.netloc, path=legacy_url_parts.path,
-                defaults={'post': post})
+            bee.models.PostLegacyUrl.objects.get_or_create(post=post,
+                defaults={'netloc': legacy_url_parts.netloc, 'path': legacy_url_parts.path})
 
             if post_is_new:
                 security = event.get('security')
