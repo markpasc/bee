@@ -79,6 +79,12 @@ class AuthorSiteAdmin(admin.ModelAdmin):
 admin.site.register(AuthorSite, AuthorSiteAdmin)
 
 
+class Link404ResultAdmin(admin.ModelAdmin):
+    list_display = ('url', 'post', 'status', 'error')
+
+admin.site.register(Link404Result, Link404ResultAdmin)
+
+
 class TemplateAdmin(admin.ModelAdmin):
     list_display = ('author', 'purpose')
 

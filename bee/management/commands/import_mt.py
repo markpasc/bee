@@ -196,7 +196,7 @@ class Command(ImportCommand):
         blogs = Blog.objects.using('mt').all().annotate(num_entries=models.Count('entry')).order_by('id')
 
         tablefmt = u'{0:>4} {1:<30} {2:<50} {3}'
-        print tablefmt.format('ID', 'Name', 'Site URL', 'Entries')
+        print tablefmt.format('ID', 'Name', 'Site URL', 'Post')
         for blog in blogs:
             print tablefmt.format(blog.id, blog.name, blog.site_url, blog.num_entries)
 

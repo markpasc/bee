@@ -6,3 +6,5 @@ django-taggit
 django-haystack
 django-social-auth
 bleach
+celery
+django-celery

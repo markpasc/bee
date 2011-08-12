@@ -4,12 +4,15 @@ import time
 
 from django.contrib.comments.moderation import CommentModerator, moderator
 from django.db import models
+import djcelery
 import south
 from south.modelsinspector import add_introspection_rules
 from taggit.managers import TaggableManager
 
 
 add_introspection_rules([], [r'^social_auth\.fields\.JSONField'])
+
+djcelery.setup_loader()
 
 
 class Avatar(models.Model):
@@ -148,6 +151,15 @@ class AuthorSite(models.Model):
 
     author = models.ForeignKey('auth.User', unique=True)
     site = models.ForeignKey('sites.Site', unique=True)
+
+
+class Link404Result(models.Model):
+
+    post = models.ForeignKey(Post)
+    url = models.CharField(max_length=255)
+    status = models.IntegerField(blank=True)
+    error = models.TextField(blank=True, null=True)
+    requested = models.DateTimeField(default=datetime.utcnow)
 
 
 class Template(models.Model):
