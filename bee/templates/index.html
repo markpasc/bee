@@ -12,23 +12,36 @@
 {% block controls %}
     {% if user_is_author %}
     <a id="control-new-post" class="button button-green" href="#">New post</a>
+    <img id="spinner-new-post" class="hidden" src="{{ STATIC_URL }}loadinfo.net.gif" width="24" height="24" alt="">
 
     <script type="text/javascript">
         $('#control-new-post').click(function () {
             if ($('#entry-editor').size())
                 return false;
 
+            $('#control-new-post').hide();
+            $('#spinner-new-post').show();
             $.ajax({
                 url: '{% url editor %}',
                 dataType: 'html',
                 success: function(data, textStatus, xhr) {
+                    $('#spinner-new-post').hide();
+
                     var $editor = $(data);
-                    var $firstEntry = $('#content .entry').first();
-                    $firstEntry.size() ? $firstEntry.before($editor) : $('#content').append($editor);
+                    $('#content .entry').hide();
+                    $('#content .pager').hide();
+                    $('#content').append($editor);
+
                     $('#entry-editor .entry-header').focus();
                 }
             });
             return false;
+        });
+
+        $(document).bind('editorClose', function (e) {
+            $('#content .entry').show();
+            $('#content .pager').show();
+            $('#control-new-post').show();
         });
     </script>
     {% endif %}

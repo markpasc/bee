@@ -222,8 +222,8 @@ $('#editor-discard-button').click(function (e) {
 
     $(window).unbind('beforeunload', preventNavigation);
 
-    // If there's a hidden entry (that is, we're on a permalink page), show it.
-    $('#content .entry:hidden').show();
+    // Let the page undo the editor's appearance.
+    $(document).trigger('editorClose');
 
     return false;
 });
