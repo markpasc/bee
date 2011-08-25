@@ -1,10 +1,15 @@
 from datetime import date, datetime, timedelta
+import json
 import logging
 from urlparse import urlsplit, urlunsplit, urljoin
 
 from BeautifulSoup import BeautifulSoup
 from celery.decorators import task
+from django.conf import settings
+from django.template.defaultfilters import striptags
+from django.utils.text import truncate_words
 import httplib2
+import oauth2
 
 import bee.models
 
@@ -142,3 +147,51 @@ def update_imported_infralinks_in_post(post_pk):
     if root_updated:
         post.html = str(root)
         post.save()
+
+
+@task()
+def blurb_to_typepad(post_pk):
+    # Only try to blurb if we have the settings for it.
+    try:
+        blurb_settings = settings.TYPEPAD_BLURB_KEY
+        consumer_key, consumer_secret, access_key, access_secret, author_id, blog_url_id = [blurb_settings[x] for x in ('consumer_key', 'consumer_secret', 'access_key', 'access_secret', 'author_id', 'blog_url_id')]
+    except (AttributeError, KeyError):
+        return
+
+    try:
+        post = bee.models.Post.objects.get(pk=post_pk)
+    except Post.DoesNotExist:
+        # Don't blurb posts that were deleted already.
+        return
+
+    # Only blurb the specified author's posts.
+    if post.author_id != author_id:
+        return
+
+    # Only blurb public posts.
+    if post.private:
+        return
+
+    h = httplib2.Http(disable_ssl_certificate_validation=True)
+    h.follow_redirects = False
+
+    url = 'https://api.typepad.com/blogs/{0}/post-assets.json'.format(blog_url_id)
+    body = json.dumps({
+        'title': post.title,
+        'content': truncate_words(striptags(post.html), 20),
+        'filename': post.slug,
+        'published': post.published.replace(microsecond=0).isoformat() + 'Z',
+    })
+
+    csr = oauth2.Consumer(consumer_key, consumer_secret)
+    token = oauth2.Token(access_key, access_secret)
+    req = oauth2.Request.from_consumer_and_token(csr, token, http_method='POST', http_url=url, is_form_encoded=True)
+    req.sign_request(oauth2.SignatureMethod_HMAC_SHA1(), csr, token)
+    auth_header = req.to_header()['Authorization']
+
+    resp, cont = h.request(url, method='POST', body=body, headers={
+        'Content-Type': 'application/json',
+        'Authorization': auth_header,
+    })
+
+    assert resp.status == 201, "Unexpected response status {0} :(".format(resp.status)
