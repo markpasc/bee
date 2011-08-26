@@ -6,6 +6,7 @@ from urlparse import urlsplit, urlunsplit, urljoin
 from BeautifulSoup import BeautifulSoup
 from celery.decorators import task
 from django.conf import settings
+import django.db.models.signals
 from django.template.defaultfilters import striptags
 from django.utils.text import truncate_words
 import httplib2
@@ -154,44 +155,98 @@ def blurb_to_typepad(post_pk):
     # Only try to blurb if we have the settings for it.
     try:
         blurb_settings = settings.TYPEPAD_BLURB_KEY
-        consumer_key, consumer_secret, access_key, access_secret, author_id, blog_url_id = [blurb_settings[x] for x in ('consumer_key', 'consumer_secret', 'access_key', 'access_secret', 'author_id', 'blog_url_id')]
-    except (AttributeError, KeyError):
+        consumer_key, consumer_secret, access_key, access_secret, author_id, blog_url_id, blog_domain = [blurb_settings[x]
+            for x in ('consumer_key', 'consumer_secret', 'access_key', 'access_secret', 'author_id', 'blog_url_id', 'blog_domain')]
+    except (AttributeError, KeyError), exc:
+        log.debug("Not blurbing post #%d since blurbing isn't configured (%s)", post_pk, str(exc))
         return
 
     try:
         post = bee.models.Post.objects.get(pk=post_pk)
     except Post.DoesNotExist:
         # Don't blurb posts that were deleted already.
+        log.debug("Not blurbing post #%d since it no longer exists", post_pk)
         return
 
     # Only blurb the specified author's posts.
     if post.author_id != author_id:
+        log.debug("Not blurbing post %r since its author #%d is not the blurb author #%d", post.slug, post.author_id, author_id)
         return
 
     # Only blurb public posts.
     if post.private:
+        log.debug("Not blurbing post %r since it's private now", post.slug)
         return
 
     h = httplib2.Http(disable_ssl_certificate_validation=True)
     h.follow_redirects = False
 
+    def make_request(url, body):
+        method = 'POST'
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        body = json.dumps(body)
+
+        csr = oauth2.Consumer(consumer_key, consumer_secret)
+        token = oauth2.Token(access_key, access_secret)
+        req = oauth2.Request.from_consumer_and_token(csr, token, http_method='POST', http_url=url, is_form_encoded=True)
+        req.sign_request(oauth2.SignatureMethod_HMAC_SHA1(), csr, token)
+        headers.update(req.to_header())
+
+        return h.request(url, method=method, body=body, headers=headers)
+
+    url = 'https://api.typepad.com/domains/{0}/resolve-path.json'.format(blog_domain)
+    # TODO: ugh, using UTC timestamp when the URL will use the blog local date
+    path = '/{0}/{1}/{2}.html'.format(post.published.strftime('%Y'), post.published.strftime('%m'), post.slug)
+    body = {
+        'path': path,
+    }
+
+    resp, cont = make_request(url, body=body)
+    # If there is an asset there, we already blurbed this post.
+    if resp.status != 200:
+        log.debug("Not blurbing post %r since we got a %r asking if '%s%s' exists: %s", post.slug, resp.status, blog_domain, path, cont)
+        return
+    path_info = json.loads(cont)
+    if path_info['isFullMatch'] and 'asset' in path_info:
+        log.debug("Not blurbing post %r since it's already blurbed as %r", post.slug, path_info['asset']['urlId'])
+        return
+
     url = 'https://api.typepad.com/blogs/{0}/post-assets.json'.format(blog_url_id)
-    body = json.dumps({
+    body = {
         'title': post.title,
         'content': truncate_words(striptags(post.html), 20),
         'filename': post.slug,
         'published': post.published.replace(microsecond=0).isoformat() + 'Z',
-    })
+    }
 
-    csr = oauth2.Consumer(consumer_key, consumer_secret)
-    token = oauth2.Token(access_key, access_secret)
-    req = oauth2.Request.from_consumer_and_token(csr, token, http_method='POST', http_url=url, is_form_encoded=True)
-    req.sign_request(oauth2.SignatureMethod_HMAC_SHA1(), csr, token)
-    auth_header = req.to_header()['Authorization']
-
-    resp, cont = h.request(url, method='POST', body=body, headers={
-        'Content-Type': 'application/json',
-        'Authorization': auth_header,
-    })
-
+    resp, cont = make_request(url, body=body)
+    if resp.status != 201:
+        log.debug("Oops, tried to blurb post %r but got a %r: %s", post.slug, resp.status, cont)
     assert resp.status == 201, "Unexpected response status {0} :(".format(resp.status)
+
+
+def blurb_new_posts(sender, instance, **kwargs):
+    post = instance
+    try:
+        # Never ever blurb private posts.
+        if post.private:
+            log.debug("Not blurbing post %r since it's private", post.slug)
+            return
+
+        # If the post is more than an hour old, don't bother blurbing it.
+        now = datetime.utcnow()
+        if post.published < now - timedelta(hours=1):
+            log.debug("Not blurbing post %r since it's %r old", post.slug, now - post.published)
+            return
+
+        # TODO: give a chance to delete/private the post before it blurbs
+        log.debug("Blurbing post %r!", post.slug)
+        blurb_to_typepad.delay(post.pk)
+    except Exception, exc:
+        log.exception(exc)
+        raise
+
+
+django.db.models.signals.post_save.connect(blurb_new_posts, sender=bee.models.Post)
