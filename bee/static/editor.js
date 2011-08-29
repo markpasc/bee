@@ -33,7 +33,7 @@
             .live('mouseout', function (e) { return editor.deactivateLinkEditor(e) });
 
         // Set up more stuff.
-        $(window).bind('beforeunload', preventNavigation);
+        this.preventNavigation();
         this.updatePublished();
         $.doTimeout('editor.updatePublished', 60000, this.updatePublished);
         jelement.find('.editor-trust').multiselect({
@@ -92,6 +92,14 @@
         if (e) e.returnValue = ret;
         return ret;
     }
+
+    Editor.prototype.preventNavigation = function () {
+        $(window).bind('beforeunload.editor', preventNavigation);
+    };
+
+    Editor.prototype.allowNavigation = function () {
+        $(window).unbind('beforeunload.editor');
+    };
 
     function publishedKeypress (e) {
         $(this).attr('data-now', null);
@@ -221,7 +229,7 @@
             data: data,
             success: function (data, textStatus, xhr) {
                 editor.removeAutosave();
-                $(window).unbind('beforeunload', preventNavigation);
+                editor.allowNavigation();
                 window.location = data['permalink'];
             },
             error: function (xhr, textStatus, errorThrown) {
@@ -232,8 +240,8 @@
 
     Editor.prototype.discard = function (e) {
         this.removeAutosave();
+        this.allowNavigation();
         $.doTimeout('editor.updatePublished');  // cancel
-        $(window).unbind('beforeunload', preventNavigation);
 
         this.jelement.remove();
 
