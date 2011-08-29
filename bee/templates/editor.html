@@ -1,16 +1,18 @@
 <script type="text/javascript" src="{{ STATIC_URL }}jquery-ui.min.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}jquery.multiselect.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}jquery.ba-dotimeout.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}jquery.relatize_date.js"></script>
 
 <div id="entry-editor" class="entry">
     {% if post %}
-        <input type="hidden" name="entry-id" id="entry-id" value="{{ post.pk }}">
+        <input type="hidden" name="entry-id" id="entry-id" class="editor-id" value="{{ post.pk }}">
     {% endif %}
-    <h2 class="entry-header" contenteditable="true">{% if post %}{{ post.title }}{% else %}Title{% endif %}</h2>
+    <h2 class="entry-header editor-title" contenteditable="true">{% if post %}{{ post.title }}{% else %}Title{% endif %}</h2>
     <!-- author -->
     <div id="entry-editor-panels">
-        <div id="entry-link-editor" contenteditable="true"></div>
+        <div id="entry-link-editor" class="editor-link-editor" contenteditable="true"></div>
     </div>
-    <div class="entry-content pkg" contenteditable="true">
+    <div class="entry-content editor-content pkg" contenteditable="true">
         {% if post %}
             {{ post.html|safe }}
         {% else %}
@@ -19,7 +21,7 @@
     </div>
     <div class="entry-footer">
         <span>
-            <select multiple="multiple" name="entry-trust" id="entry-trust" size="5">
+            <select multiple="multiple" name="entry-trust" id="entry-trust" class="editor-trust" size="5">
                 <option value="public"{% if post and not post.private %} selected="selected"{% endif %}>Public</option>
                 {% for group in user.trust_groups.all %}
                     <option value="{{ group.pk }}"{% if post and post.private and group in post.private_to.all %} selected="selected"{% endif %}>{{ group.display_name }}</option>
@@ -27,15 +29,19 @@
             </select>
         </span>
         <span>
-            <span id="entry-published" {% if post %}{% else %}data-now="yes" {% endif %}contenteditable="true">{% if post %}{{ post.published|date:"Y-m-d" }}T{{ post.published|date:"H:i:s" }}Z{% else %}~timestamp~{% endif %}</span>
+            <span id="entry-published" class="editor-published" {% if post %}{% else %}data-now="yes" {% endif %}contenteditable="true">{% if post %}{{ post.published|date:"Y-m-d" }}T{{ post.published|date:"H:i:s" }}Z{% else %}~timestamp~{% endif %}</span>
         </span>
-        <span>Permalink: <span id="entry-slug" {% if post %}{% else %}data-autotitle="true" {% endif %}contenteditable="true">{% if post %}{{ post.slug }}{% else %}title{% endif %}</span></span>
+        <span>Permalink: <span id="entry-slug" class="editor-slug" {% if post %}{% else %}data-autotitle="true" {% endif %}contenteditable="true">{% if post %}{{ post.slug }}{% else %}title{% endif %}</span></span>
         <span class="editor-buttons">
-            <a id="editor-post-button" href="#" class="button button-green">Post</a>
-            <a id="editor-discard-button" href="#" class="button button-black">Discard</a>
+            <a id="editor-post-button" href="#" class="button button-green editor-post-button">Post</a>
+            <a id="editor-discard-button" href="#" class="button button-black editor-discard-button">Discard</a>
         </span>
     </div>
 </div>
 
-<script type="text/javascript" src="{{ STATIC_URL }}jquery.relatize_date.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}editor.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('#entry-editor').editor();
+    });
+</script>

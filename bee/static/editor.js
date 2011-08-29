@@ -1,98 +1,118 @@
 (function ($) {
 
-    function updatePublishedTimer() {
-        var $publ = $('#entry-published');
+    function Editor (jelement, settings) {
+        this.jelement = jelement;
+        $.extend(this, settings);
+
+        var editor = this;
+
+        var $title = jelement.find('.editor-title');
+        var $content = jelement.find('.editor-content');
+        var $published = jelement.find('.editor-published');
+        var $slug = jelement.find('.editor-slug');
+        var $linkEditor = jelement.find('.editor-link-editor');
+
+        // Set up key controls.
+        $content.bind('keydown', function (e) { return editor.editorKey(e) });
+        $title.bind('keypress', titleKeypress).bind('keyup', function (e) { return editor.titleKeyup(e) });
+        $slug.bind('keypress', slugKeypress);
+        $published.bind('keypress', publishedKeypress);
+        if (Modernizr.localstorage)
+            $title.add($content).add($published).add($slug).bind('textInput', function (e) {
+                // Unnamed, so it won't debounce, but rather save again in another 10 secs.
+                $.doTimeout(10000, editor.autosave);
+            });
+
+        // Set up buttons.
+        jelement.find('.editor-post-button').click(function (e) { editor.post(); return false });
+        jelement.find('.editor-discard-button').click(function (e) { editor.discard(); return false });
+
+        // Set up link editor.
+        $linkEditor.hide();
+        $content.find('a').live('click', false).live('mouseover', function (e) { return editor.activateLinkEditor(e) })
+            .live('mouseout', function (e) { return editor.deactivateLinkEditor(e) });
+
+        // Set up more stuff.
+        $(window).bind('beforeunload', preventNavigation);
+        this.updatePublished();
+        $.doTimeout('editor.updatePublished', 60000, this.updatePublished);
+        jelement.find('.editor-trust').multiselect({
+            header: false,
+            selectedList: 4,
+            noneSelectedText: 'Private (draft)',
+            click: function(event, ui) {
+                if (ui.value == 'public' && ui.checked)
+                    return;
+                    //$('#entry-trust').multiselect('uncheckAll');
+            }
+        });
+    }
+
+    Editor.prototype.updatePublished = function () {
+        var $publ = this.jelement.find('.editor-published');
         if ($publ.attr('data-now')) {
             var now = new Date();
             now.setSeconds(0);
             now.setMilliseconds(0);
             $publ.text(now.toISOString());
         }
-    }
+        return true;
+    };
 
-    function autosave() {
-        var $editor = $('#entry-editor');
-        if ($editor.attr('data-autosaved'))
-            return;
+    Editor.prototype.autosave = function () {
+        var $editor = this.jelement;
 
-        var $id = $('#entry-id');
-        var postid = $id.size() ? $id.val() : 'new';
+        localStorage['autosave.' + this.autosaveid] = 1;
+        localStorage['autosave.' + this.autosaveid + '.title'] = $editor.find('.editor-title').text();
+        localStorage['autosave.' + this.autosaveid + '.html'] = $editor.find('.editor-content').html();
+        localStorage['autosave.' + this.autosaveid + '.slug'] = $editor.find('.editor-slug').text();
 
-        localStorage['autosave.' + postid] = 1;
-        localStorage['autosave.' + postid + '.title'] = $('#entry-editor .entry-header').text();
-        localStorage['autosave.' + postid + '.html'] = $('#entry-editor .entry-content').html();
-        localStorage['autosave.' + postid + '.slug'] = $('#entry-slug').text();
-
-        var $publ = $('#entry-published');
+        var $publ = $editor.find('.editor-published');
         if (!$publ.attr('data-now'))
-            localStorage['autosave.' + postid + '.published'] = $('#entry-published').text();
+            localStorage['autosave.' + this.autosaveid + '.published'] = $publ.text();
 
-        $editor.attr('data-autosaved', 'yes');
+        return true;
+    };
+
+    Editor.prototype.removeAutosave = function () {
+        localStorage.removeItem('autosave.' + this.autosaveid);
+        localStorage.removeItem('autosave.' + this.autosaveid + '.title');
+        localStorage.removeItem('autosave.' + this.autosaveid + '.html');
+        localStorage.removeItem('autosave.' + this.autosaveid + '.slug');
+        localStorage.removeItem('autosave.' + this.autosaveid + '.published');
+    };
+
+    if (!Modernizr.localstorage) {
+        Editor.prototype.autosave = function () { return false };
+        Editor.prototype.removeAutosave = function () {};
     }
 
-    function removeAutosave(postid) {
-        $('#entry-editor').attr('data-autosaved', null);
-        localStorage.removeItem('autosave.' + postid);
-        localStorage.removeItem('autosave.' + postid + '.title');
-        localStorage.removeItem('autosave.' + postid + '.html');
-        localStorage.removeItem('autosave.' + postid + '.slug');
-        localStorage.removeItem('autosave.' + postid + '.published');
-    }
-
-    var editorPublishedTimer;
-    var editorAutosaveTimer;
-
-    function startEditor() {
-        updatePublishedTimer();
-        editorPublishedTimer = setInterval(updatePublishedTimer, 60000);
-
-        if (Modernizr.localstorage)
-            editorAutosaveTimer = setInterval(autosave, 10000);
-
-        $('#entry-link-editor').hide();
-    }
-    $(document).ready(startEditor);
-
-    function preventNavigation(e) {
+    function preventNavigation (e) {
         var ret = 'The editor is open.';
         if (e) e.returnValue = ret;
         return ret;
     }
-    $(window).bind('beforeunload', preventNavigation);
 
-    $('#entry-published').bind('keypress', function (e) {
+    function publishedKeypress (e) {
         $(this).attr('data-now', null);
-    });
+    }
 
-    $('#entry-editor .entry-header').add('#entry-editor .entry-content').add('#entry-published').add('#entry-slug').bind('textInput', function (e) {
-        $('#entry-editor').attr('data-autosaved', null);
-    });
-
-    $('#entry-trust').multiselect({
-        header: false,
-        selectedList: 4,
-        noneSelectedText: 'Private (draft)',
-        click: function(event, ui) {
-            if (ui.value == 'public' && ui.checked)
-                return;
-                //$('#entry-trust').multiselect('uncheckAll');
-        }
-    });
-
-    $('#entry-editor .entry-header').bind('keypress', function (e) {
+    function titleKeypress (e) {
         if (e.which == 13)
             return false;
-    }).bind('keyup', function (e) {
-        var $slug = $('#entry-slug');
+    }
+
+    Editor.prototype.titleKeyup = function (e) {
+        var $slug = this.jelement.find('.editor-slug');
         if (!$slug.attr('data-autotitle'))
             return;
 
-        var title = $(this).text();
+        var title = $(e.target).text();
         var slug = title.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9\-]/g,'').replace(/--+/g, '-').replace(/^-|-$/g, '').toLowerCase();
         $slug.text(slug);
-    });
+    };
 
-    $('#entry-slug').bind('keypress', function (e) {
+    function slugKeypress (e) {
         if (e.which != 45                          // -
             && (e.which < 48 || 57 < e.which)      // 0-9
             && (e.which < 97 || 122 < e.which)) {  // a-z
@@ -100,9 +120,9 @@
         }
 
         $(this).attr('data-autotitle', null);
-    });
+    }
 
-    $('#entry-editor .entry-content').bind('keydown', function (e) {
+    Editor.prototype.editorKey = function (e) {
         if (e.altKey || e.shiftKey || !e.ctrlKey)
             return true;
 
@@ -133,42 +153,46 @@
         }
 
         return true;
-    });
+    };
 
-    $('#entry-editor .entry-content a').live('click', false).live('mouseover', function (e) {
-        var $link = $(this);
+    Editor.prototype.activateLinkEditor = function (e) {
+        var $link = $(e.target);
         var linkpos = $link.offset();
 
-        var $linkeditor = $('#entry-link-editor');
-        $linkeditor.text($(this).attr('href'));
+        var $linkeditor = this.jelement.find('.link-editor');
+        $linkeditor.text($link.attr('href'));
         $linkeditor.bind('keyup', function (e) {
             $link.attr('href', $(this).text());
         });
         $linkeditor.show();
         $linkeditor.offset({ top: linkpos.top + $(this).height(), left: linkpos.left });
         $linkeditor.focus();
-    }).live('mouseout', function (e) {
-        var $linkeditor = $('#entry-link-editor');
+    };
+
+    Editor.prototype.deactivateLinkEditor = function (e) {
+        var $linkeditor = this.jelement.find('.link-editor');
         $linkeditor.blur();
         $linkeditor.unbind('keyup');
         $linkeditor.hide();
-    });
+    };
 
-    $('#editor-post-button').click(function (e) {
+    Editor.prototype.post = function () {
+        var $editor = this.jelement;
+
         var data = {
             //avatar: 
-            title: $('#entry-editor .entry-header').text(),
-            html: $.trim($('#entry-editor .entry-content').html()),
-            slug: $('#entry-slug').text(),
+            title: $editor.find('.editor-title').text(),
+            html: $.trim($editor.find('.editor-content').html()),
+            slug: $editor.find('.editor-slug').text(),
             // TODO: use Date.toISOString() when we have a js date from a picker instead
-            published: $.trim($('#entry-published').text()),
+            published: $.trim($editor.find('.editor-published').text()),
             tags: '',
             comments_enabled: true,
             private: true,
             private_to: []
         };
 
-        var trust = $('#entry-trust').val();
+        var trust = $editor.find('.editor-trust').val();
         if (trust) {
             $.each(trust, function (key, value) {
                 if (value == 'public') {
@@ -184,19 +208,19 @@
             data['private_to'] = [];
         }
 
-        var autosaveid = 'new';
-        if ($('#entry-editor #entry-id').size()) {
-            data['id'] = $('#entry-editor #entry-id').val();
-            autosaveid = data['id'];
+        var $entryId = $editor.find('.editor-id');
+        if ($entryId.size()) {
+            data['id'] = $entryId.val();
         }
 
+        var editor = this;
         $.ajax({
             url: '/_/edit',
             type: 'POST',
             dataType: 'json',
             data: data,
             success: function (data, textStatus, xhr) {
-                removeAutosave(autosaveid);
+                editor.removeAutosave();
                 $(window).unbind('beforeunload', preventNavigation);
                 window.location = data['permalink'];
             },
@@ -204,30 +228,30 @@
                 alert('ERROR: ' + xhr.responseText);
             }
         });
-        return false;
-    });
+    };
 
-    $('#editor-discard-button').click(function (e) {
-        var $entryid = $('#entry-editor #entry-id');
-        var autosaveid = $entryid.size() ? $entryid.val() : 'new';
-        removeAutosave($entryid);
-
-        $('#entry-editor').remove();
-        if (editorPublishedTimer) {
-            clearTimeout(editorPublishedTimer);
-            editorPublishedTimer = null;
-        }
-        if (editorAutosaveTimer) {
-            clearTimeout(editorAutosaveTimer);
-            editorAutosaveTimer = null;
-        }
-
+    Editor.prototype.discard = function (e) {
+        this.removeAutosave();
+        $.doTimeout('editor.updatePublished');  // cancel
         $(window).unbind('beforeunload', preventNavigation);
+
+        this.jelement.remove();
 
         // Let the page undo the editor's appearance.
         $(document).trigger('editorClose');
+    };
 
-        return false;
-    });
+    $.fn.editor = function (options) {
+        var settings = {
+            autosaveid: '',
+            lastSetting: null
+        };
+        $.extend(settings, options);
+
+        return this.each(function () {
+            var $this = $(this);
+            $this.data('editor', new Editor($this, settings));
+        });
+    };
 
 })(jQuery);
