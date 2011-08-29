@@ -160,6 +160,7 @@ def blurb_to_typepad(post_pk):
     except (AttributeError, KeyError), exc:
         log.debug("Not blurbing post #%d since blurbing isn't configured (%s)", post_pk, str(exc))
         return
+    blog_dirname = blurb_settings.get('blog_dirname', '')
 
     try:
         post = bee.models.Post.objects.get(pk=post_pk)
@@ -198,7 +199,7 @@ def blurb_to_typepad(post_pk):
 
     url = 'https://api.typepad.com/domains/{0}/resolve-path.json'.format(blog_domain)
     # TODO: ugh, using UTC timestamp when the URL will use the blog local date
-    path = '/{0}/{1}/{2}.html'.format(post.published.strftime('%Y'), post.published.strftime('%m'), post.slug)
+    path = '/{0}{1}/{2}/{3}.html'.format(blog_dirname, post.published.strftime('%Y'), post.published.strftime('%m'), post.slug)
     body = {
         'path': path,
     }
