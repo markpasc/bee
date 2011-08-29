@@ -217,8 +217,8 @@ def blurb_to_typepad(post_pk):
     url = 'https://api.typepad.com/blogs/{0}/post-assets.json'.format(blog_url_id)
     body = {
         'title': post.title,
-        'content': truncate_words(striptags(post.html), 20),
         'filename': post.slug,
+        'content': post.html,
         'published': post.published.replace(microsecond=0).isoformat() + 'Z',
     }
 
