@@ -2,7 +2,7 @@
 
 {% block content %}
 
-    <div id="sign-in-social" class="entry">
+    <div id="sign-in-social" class="box">
         <h3>Sign in with:</h3>
         <p>
             <a href="{% url socialauth_begin 'twitter' %}">Twitter</a>
@@ -14,16 +14,6 @@
         <form method="post" action="{% url socialauth_begin 'openid' %}">
             {% csrf_token %}
             <p><label>OpenID <input name="openid_identifier"></label> <input type="submit" value="Sign in"></p>
-        </form>
-    </div>
-
-    <div id="sign-in-form" class="entry">
-        <h3>Or sign in with an account:</h3>
-        <form method="post" action="{% url django.contrib.auth.views.login %}">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ next }}">
-            {{ form.as_p }}
-            <p class="submit"><input type="submit" value="Sign in"></p>
         </form>
     </div>
 

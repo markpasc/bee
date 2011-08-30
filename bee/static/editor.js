@@ -6,22 +6,24 @@
 
         var editor = this;
 
-        var $title = jelement.find('.editor-title');
         var $content = jelement.find('.editor-content');
+        var $linkEditor = jelement.find('.editor-link-editor');
+        // these might not exist:
+        var $title = jelement.find('.editor-title');
         var $published = jelement.find('.editor-published');
         var $slug = jelement.find('.editor-slug');
-        var $linkEditor = jelement.find('.editor-link-editor');
 
         // Set up key controls.
         $content.bind('keydown', function (e) { return editor.editorKey(e) });
         $title.bind('keypress', titleKeypress).bind('keyup', function (e) { return editor.titleKeyup(e) });
         $slug.bind('keypress', slugKeypress);
         $published.bind('keypress', publishedKeypress);
-        if (Modernizr.localstorage)
+        if (Modernizr.localstorage) {
+            editor.autosave();
             $title.add($content).add($published).add($slug).bind('textInput', function (e) {
-                // Unnamed, so it won't debounce, but rather save again in another 10 secs.
-                $.doTimeout(10000, editor.autosave);
+                $.doTimeout('editor.autosave', 1000, function () { return editor.autosave() });
             });
+        }
 
         // Set up buttons.
         jelement.find('.editor-post-button').click(function (e) { editor.post(); return false });
@@ -34,9 +36,11 @@
 
         // Set up more stuff.
         this.preventNavigation();
-        this.updatePublished();
-        $.doTimeout('editor.updatePublished', 60000, this.updatePublished);
-        jelement.find('.editor-trust').multiselect({
+        if ($published.size()) {
+            this.updatePublished();
+            $.doTimeout('editor.updatePublished', 60000, this.updatePublished);
+        }
+        jelement.find('.editor-trust').multiselect({  // might not exist
             header: false,
             selectedList: 4,
             noneSelectedText: 'Private (draft)',
@@ -60,26 +64,35 @@
     };
 
     Editor.prototype.autosave = function () {
-        var $editor = this.jelement;
+        var autokey = 'autosave.' + this.autosaveid;
+        localStorage[autokey] = 1;
 
-        localStorage['autosave.' + this.autosaveid] = 1;
-        localStorage['autosave.' + this.autosaveid + '.title'] = $editor.find('.editor-title').text();
-        localStorage['autosave.' + this.autosaveid + '.html'] = $editor.find('.editor-content').html();
-        localStorage['autosave.' + this.autosaveid + '.slug'] = $editor.find('.editor-slug').text();
+        var data = this.serialize();
+        $.each(data, function (key, val) {
+            localStorage[autokey + '.' + key] = val;
+        });
 
-        var $publ = $editor.find('.editor-published');
-        if (!$publ.attr('data-now'))
-            localStorage['autosave.' + this.autosaveid + '.published'] = $publ.text();
-
-        return true;
+        return false;
     };
 
     Editor.prototype.removeAutosave = function () {
+        // Cancel autosaving if we're going to autosave.
+        $.doTimeout('editor.autosave');  // cancel
+
         localStorage.removeItem('autosave.' + this.autosaveid);
-        localStorage.removeItem('autosave.' + this.autosaveid + '.title');
-        localStorage.removeItem('autosave.' + this.autosaveid + '.html');
-        localStorage.removeItem('autosave.' + this.autosaveid + '.slug');
-        localStorage.removeItem('autosave.' + this.autosaveid + '.published');
+
+        // Laboriously remove all the autosave keys, so we don't have to assume what they are.
+        var autoPrefix = 'autosave.' + this.autosaveid + '.';
+        var keysToRemove = new Array();
+        for (var i = 0; i < localStorage.length; i++) {
+            var key = localStorage.key(i);
+            if (key.slice(0, autoPrefix.length) == autoPrefix) {
+                keysToRemove.push(key);
+            }
+        }
+        $.each(keysToRemove, function (i, val) {
+            localStorage.removeItem(keysToRemove);
+        });
     };
 
     if (!Modernizr.localstorage) {
@@ -184,21 +197,24 @@
         $linkeditor.hide();
     };
 
-    Editor.prototype.post = function () {
+    Editor.prototype.serialize = function () {
         var $editor = this.jelement;
-
         var data = {
             //avatar: 
             title: $editor.find('.editor-title').text(),
             html: $.trim($editor.find('.editor-content').html()),
             slug: $editor.find('.editor-slug').text(),
-            // TODO: use Date.toISOString() when we have a js date from a picker instead
-            published: $.trim($editor.find('.editor-published').text()),
             tags: '',
             comments_enabled: true,
             private: true,
             private_to: []
         };
+
+        // TODO: use Date.toISOString() when we have a js date from a picker instead
+        var $publ = $editor.find('.editor-published');
+        if (!$publ.attr('data-now')) {
+            data['published'] = $.trim($publ.text());
+        }
 
         var trust = $editor.find('.editor-trust').val();
         if (trust) {
@@ -211,10 +227,13 @@
                 data['private_to'].push(value);
             });
         }
-        else {
-            data['private'] = true;
-            data['private_to'] = [];
-        }
+
+        return data;
+    };
+
+    Editor.prototype.post = function () {
+        var $editor = this.jelement;
+        var data = this.serialize();
 
         var $entryId = $editor.find('.editor-id');
         if ($entryId.size()) {
@@ -242,16 +261,13 @@
         this.removeAutosave();
         this.allowNavigation();
         $.doTimeout('editor.updatePublished');  // cancel
-
-        this.jelement.remove();
-
-        // Let the page undo the editor's appearance.
-        $(document).trigger('editorClose');
+        this.ondiscard();
     };
 
     $.fn.editor = function (options) {
         var settings = {
             autosaveid: '',
+            ondiscard: function () {},
             lastSetting: null
         };
         $.extend(settings, options);

@@ -1,9 +1,4 @@
-<script type="text/javascript" src="{{ STATIC_URL }}jquery-ui.min.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}jquery.multiselect.min.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}jquery.ba-dotimeout.min.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}jquery.relatize_date.js"></script>
-
-<div id="entry-editor" class="entry">
+<div id="entry-editor" class="entry box">
     {% if post %}
         <input type="hidden" name="entry-id" id="entry-id" class="editor-id" value="{{ post.pk }}">
     {% endif %}
@@ -32,16 +27,9 @@
             <span id="entry-published" class="editor-published" {% if post %}{% else %}data-now="yes" {% endif %}contenteditable="true">{% if post %}{{ post.published|date:"Y-m-d" }}T{{ post.published|date:"H:i:s" }}Z{% else %}~timestamp~{% endif %}</span>
         </span>
         <span>Permalink: <span id="entry-slug" class="editor-slug" {% if post %}{% else %}data-autotitle="true" {% endif %}contenteditable="true">{% if post %}{{ post.slug }}{% else %}title{% endif %}</span></span>
-        <span class="editor-buttons">
+        <span class="editor-buttons pkg">
             <a id="editor-post-button" href="#" class="button button-green editor-post-button">Post</a>
             <a id="editor-discard-button" href="#" class="button button-black editor-discard-button">Discard</a>
         </span>
     </div>
 </div>
-
-<script type="text/javascript" src="{{ STATIC_URL }}editor.js"></script>
-<script type="text/javascript">
-    $(document).ready(function () {
-        $('#entry-editor').editor();
-    });
-</script>

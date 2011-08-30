@@ -5,6 +5,16 @@
 
 {% block htmltitle %}{{ post.title }} &middot; {{ author.username }}{% endblock %}
 
+{% block htmlhead %}
+    {{ block.super }}
+
+    <script type="text/javascript" src="{{ STATIC_URL }}jquery-ui.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}jquery.multiselect.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}jquery.ba-dotimeout.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}jquery.relatize_date.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}editor.js"></script>
+{% endblock %}
+
 {% block controls %}
     {% if user_is_author %}
     <a id="control-edit-post" class="button button-green" href="#">Edit post</a>
@@ -26,16 +36,22 @@
 
                     var $editor = $(data);
                     $('#content .entry').hide();
+                    $('#comment-controls').hide();
                     $('#content').append($editor);
+
+                    $('#entry-editor').editor({
+                        autosaveid: $('#entry-id').val(),
+                        ondiscard: function () {
+                            $('#entry-editor').hide();
+                            $('#content .entry').show();
+                            $('#control-edit-post').show();
+                            $('#comment-controls').show();
+                        }
+                    });
                     $('#entry-editor .entry-header').focus();
                 }
             });
             return false;
-        });
-
-        $(document).bind('editorClose', function (e) {
-            $('#content .entry').show();
-            $('#control-edit-post').show();
         });
     </script>
     {% endif %}
@@ -51,7 +67,7 @@
     {% get_comment_tree for post as comments %}
     {% for comment in comments %}
         {% if forloop.first %}
-        <div id="comments" class="entry">
+        <div id="comments" class="entry box">
         {% endif %}
             <div id="comment-{{ comment.pk }}" class="comment comment-depth-{{ comment.depth|default:0 }}">
                 <p class="comment-header">
@@ -75,7 +91,11 @@
     {% endfor %}
 
     {% if post.comments_enabled %}
-    <div id="comment-form" class="entry">
+    <p id="comment-controls">
+        <a id="control-add-comment" class="button button-green" href="#">Add a comment</a>
+    </p>
+
+    <div id="comment-form" class="box hidden">
         {% get_comment_form for post as form %}
         <form method="post" action="{% comment_form_target %}">
             {% csrf_token %}
@@ -84,26 +104,76 @@
             {{ form.object_pk }}
             {{ form.timestamp }}
             {{ form.security_hash }}
-            <div class="hidden">{{ form.honeypot }}</div>
+            <div class="hidden">
+                {{ form.honeypot }}
+                {% if user.is_anonymous %}{{ form.name }}{% endif %}
+                {{ form.comment }}
+            </div>
             <input type="hidden" name="next" value="{{ current_url }}#comments">
 
-            {% if user.is_anonymous %}
-                {{ form.name }}
-            {% else %}
-                <p><label>Name</label> {{ user.get_full_name|default:user.username }}</p>
-            {% endif %}
+            <div id="comment-new" class="comment comment-depth-0">
+                <div id="comment-editor-panels">
+                    <div id="comment-link-editor" class="editor-link-editor" contenteditable="true"></div>
+                </div>
 
-            <p>
-                <label for="id_comment">Comment</label>
-                {{ form.comment }}
-            </p>
+                <p class="comment-header">
+                    {% if user.is_anonymous %}
+                        <span id="commenter-name" class="commenter-name" contenteditable="true">your name</span>
+                    {% else %}
+                        <span class="commenter-name">{{ user.get_full_name|default:user.username }}</span>
+                    {% endif %}
+                    <a class="comment-timestamp" href="#comment-form">just now</a>
+                </p>
 
-            <p class="submit">
-                <input type="submit" name="submit" value="Post">
-                <input type="submit" name="preview" value="Preview">
-            </p>
+                <div id="comment-content" class="editor-content" contenteditable="true">
+                    <p>enter your comment here</p>
+                </div>
+
+                <span class="editor-buttons pkg">
+                    <a id="comment-post-button" href="#" class="button button-green editor-post-button">Post</a>
+                    <a id="comment-discard-button" href="#" class="button button-black editor-discard-button">Discard</a>
+                </span>
+            </div>
         </form>
     </div>
+
+    <script type="text/javascript">
+        $('#control-add-comment').click(function () {
+            var $addComment = $(this);
+            $addComment.hide();
+            $('#comment-form').show();
+
+            $('#comment-form').editor({
+                autosaveid: 'comment_{{ post.pk }}',
+                ondiscard: function () {
+                    $('#comment-form').hide();
+                    $addComment.show();
+                },
+                serialize: function () {
+                    var data = {
+                        comment: $.trim($('#comment-form .editor-content').html())
+                    };
+                    if ($('#commenter-name').size())
+                        data['name'] = $.trim($('#commenter-name').text());
+                    return data;
+                },
+                post: function () {
+                    $('#id_comment').val($.trim($('#comment-form .editor-content').html()));
+                    if ($('#id_name').size())
+                        $('#id_name').val($.trim($('#commenter-name').text()));
+
+                    var editor = $('#comment-form').data('editor');
+                    editor.removeAutosave();
+                    editor.allowNavigation();
+
+                    $('#comment-form form').get(0).submit();
+                }
+            });
+            $('#commenter-name').size() ? $('#commenter-name').focus() : $('#comment-content').focus();
+
+            return false;
+        });
+    </script>
     {% endif %}
 
 {% endblock %}

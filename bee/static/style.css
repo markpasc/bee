@@ -79,7 +79,7 @@ body {
     padding-right: 20px;
 }
 
-.entry {
+.box {
     background-color: white;
     position: relative;
     margin: 0;
@@ -88,7 +88,7 @@ body {
     border-radius: 5px;
     -moz-border-radius: 5px;
 }
-.entry + .entry {
+.box + .box {
     margin-top: 30px;
 }
 
@@ -231,11 +231,11 @@ pre.wide { white-space: pre; }
 #comments .comment + .comment {
     margin-top: 4ex;
 }
-#comments p.comment-header {
+#comments p.comment-header, #comment-form p.comment-header {
     margin: 0;
     color: #999;
 }
-#comments .comment-timestamp {
+#comments .comment-timestamp, #comment-form .comment-timestamp {
     font-size: 0.8em;
 }
 #comments .comment         { margin-left: 10em; }
@@ -251,7 +251,7 @@ pre.wide { white-space: pre; }
     width: 10em;
     vertical-align: top;
 }
-#comment-form p.submit, #sign-in-form p.submit {
+#sign-in-form p.submit {
     padding-left: 10em;
 }
 
@@ -260,10 +260,12 @@ pre.wide { white-space: pre; }
 #entry-editor {
     position: relative;
 }
+#comment-form span.editor-buttons,
 #entry-editor span.editor-buttons {
     display: inline-block;
     float: right;
     margin-right: 0;
+    font-size: 0.8em;
 }
 #entry-published.oops {
     background: #fcc;
@@ -281,11 +283,11 @@ button.ui-multiselect, .ui-multiselect-menu {
     margin-left: 0;
     padding-left: 0;
 }
-#entry-editor-panels {
+#entry-editor-panels, #comment-editor-panels {
     display: block;
     position: absolute;
 }
-#entry-link-editor {
+.editor-link-editor {
     display: inline-block;
     background: #66c;
     color: white;

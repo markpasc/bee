@@ -32,16 +32,19 @@
                     $('#content .pager').hide();
                     $('#content').append($editor);
 
+                    $('#entry-editor').editor({
+                        autosaveid: 'new',
+                        ondiscard: function () {
+                            $('#entry-editor').hide();
+                            $('#content .entry').show();
+                            $('#content .pager').show();
+                            $('#control-new-post').show();
+                        }
+                    });
                     $('#entry-editor .entry-header').focus();
                 }
             });
             return false;
-        });
-
-        $(document).bind('editorClose', function (e) {
-            $('#content .entry').show();
-            $('#content .pager').show();
-            $('#control-new-post').show();
         });
     </script>
     {% endif %}
