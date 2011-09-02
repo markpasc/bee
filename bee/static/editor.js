@@ -38,7 +38,7 @@
         this.preventNavigation();
         if ($published.size()) {
             this.updatePublished();
-            $.doTimeout('editor.updatePublished', 60000, this.updatePublished);
+            $.doTimeout('editor.updatePublished', 60000, function () { editor.updatePublished() });
         }
         jelement.find('.editor-trust').multiselect({  // might not exist
             header: false,
@@ -186,7 +186,7 @@
             $link.attr('href', $(this).text());
         });
         $linkeditor.show();
-        $linkeditor.offset({ top: linkpos.top + $(this).height(), left: linkpos.left });
+        $linkeditor.offset({ top: linkpos.top + $link.height(), left: linkpos.left });
         $linkeditor.focus();
     };
 
