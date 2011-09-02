@@ -228,6 +228,11 @@ pre { white-space: pre-wrap; overflow: auto; }
 pre.wide { white-space: pre; }
 
 
+#comment-controls {
+    margin-top: 30px;
+}
+
+
 #comments .comment + .comment {
     margin-top: 4ex;
 }
@@ -255,17 +260,18 @@ pre.wide { white-space: pre; }
     padding-left: 10em;
 }
 
+#comment-form .editor-buttons {
+    text-align: right;
+    font-size: 0.8em;
+}
+#comment-form .comment-header .sign-in-button {
+    font-size: 0.8em;
+}
+
 
 /* entry editor */
 #entry-editor {
     position: relative;
-}
-#comment-form span.editor-buttons,
-#entry-editor span.editor-buttons {
-    display: inline-block;
-    float: right;
-    margin-right: 0;
-    font-size: 0.8em;
 }
 #entry-published.oops {
     background: #fcc;
@@ -296,4 +302,11 @@ button.ui-multiselect, .ui-multiselect-menu {
     border-radius: 5px;
     -moz-border-radius: 5px;
     z-index: 7;
+}
+
+#entry-editor .editor-title:focus,
+#entry-editor .editor-slug:focus,
+#entry-editor .editor-published:focus,
+#comment-form .commenter-name:focus {
+    background-color: #ff9;
 }

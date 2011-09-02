@@ -91,9 +91,9 @@
     {% endfor %}
 
     {% if post.comments_enabled %}
-    <p id="comment-controls">
+    <div id="comment-controls">
         <a id="control-add-comment" class="button button-green" href="#">Add a comment</a>
-    </p>
+    </div>
 
     <div id="comment-form" class="box hidden">
         {% get_comment_form for post as form %}
@@ -119,6 +119,7 @@
                 <p class="comment-header">
                     {% if user.is_anonymous %}
                         <span id="commenter-name" class="commenter-name" contenteditable="true">your name</span>
+                        or <a href="{% url signin %}" class="button button-orange sign-in-button">sign in</a>
                     {% else %}
                         <span class="commenter-name">{{ user.get_full_name|default:user.username }}</span>
                     {% endif %}
@@ -129,10 +130,10 @@
                     <p>enter your comment here</p>
                 </div>
 
-                <span class="editor-buttons pkg">
+                <div class="editor-buttons">
                     <a id="comment-post-button" href="#" class="button button-green editor-post-button">Post</a>
                     <a id="comment-discard-button" href="#" class="button button-black editor-discard-button">Discard</a>
-                </span>
+                </div>
             </div>
         </form>
     </div>

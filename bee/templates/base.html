@@ -30,7 +30,7 @@
 
         <div id="controls" class="pkg">
             {% block controls %}
-                {% if user.is_anonymous %}
+                {% if user.is_anonymous and not signing_in %}
                     <a href="{% url signin %}" class="button button-orange">Sign in</a>
                 {% else %}
                     <a href="{% url signout %}" class="button button-black">Sign out</a>
