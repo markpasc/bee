@@ -180,7 +180,7 @@
         var $link = $(e.target);
         var linkpos = $link.offset();
 
-        var $linkeditor = this.jelement.find('.link-editor');
+        var $linkeditor = this.jelement.find('.editor-link-editor');
         $linkeditor.text($link.attr('href'));
         $linkeditor.bind('keyup', function (e) {
             $link.attr('href', $(this).text());
@@ -191,7 +191,7 @@
     };
 
     Editor.prototype.deactivateLinkEditor = function (e) {
-        var $linkeditor = this.jelement.find('.link-editor');
+        var $linkeditor = this.jelement.find('.editor-link-editor');
         $linkeditor.blur();
         $linkeditor.unbind('keyup');
         $linkeditor.hide();
