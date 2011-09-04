@@ -8,3 +8,4 @@ django-social-auth
 bleach
 celery
 django-celery
+BeautifulSoup
