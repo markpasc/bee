@@ -3,6 +3,7 @@ import logging
 import os
 from os.path import basename
 import random
+import re
 import string
 
 from BeautifulSoup import BeautifulSoup
@@ -74,3 +75,11 @@ class ImportCommand(BaseCommand):
             el['src'] = asset.sourcefile.url  # guess this is a property?
 
         return str(content_root), assets
+
+    html_block_re = re.compile(r'\A </? (?: h1|h2|h3|h4|h5|h6|table|ol|dl|ul|menu|dir|p|pre|center|form|fieldset|select|blockquote|address|div|hr )', re.MULTILINE | re.DOTALL | re.IGNORECASE | re.VERBOSE)
+
+    def html_text_transform(self, text):
+        # Convert line breaks like Movable Type does.
+        text = text.replace(u'\r', u'')  # don't really care about \rs
+        grafs = text.split(u'\n\n')
+        return u'\n\n'.join(graf if self.html_block_re.match(graf) else u'<p>{0}</p>'.format(graf.replace(u'\n', u'<br>\n')) for graf in grafs)

@@ -116,12 +116,6 @@ class Command(ImportCommand):
 
         return person
 
-    def format_soup(self, content_root):
-        for el in content_root.findAll(text=lambda t: '\n' in t):
-            if el.findParent(re.compile(r'pre|lj-raw|table')) is None:
-                new_content = el.string.replace('\n', '<br>\n')
-                el.replaceWith(BeautifulSoup(new_content))
-
     def import_comment(self, comment_el, asset, openid_for, root_atom_id=None):
         if root_atom_id is None:
             root_atom_id = asset.atom_id
@@ -149,8 +143,8 @@ class Command(ImportCommand):
         else:
             logging.debug("    Oops, comment not preformatted, let's parse it")
             content_root = BeautifulSoup(body)
-            self.format_soup(content_root)
-            comment.comment = str(content_root)
+            comment.comment = str(content_root).decode('utf8')
+            comment.comment = self.html_text_transform(comment.comment)
 
         if isinstance(asset, comment_cls):
             comment.content_object = asset.content_object
@@ -189,7 +183,15 @@ class Command(ImportCommand):
         map_url, map_path = matching_maps[0]
         img_path = join(map_path, unquote(image_url[len(map_url):]))
 
-        return img_path
+        # Try more aggressively to find an image if it doesn't exist as-is.
+        if not os.access(img_path, os.F_OK):
+            maybe_stem = img_path.rstrip('/')
+            for ext in ('gif', 'png', 'jpg', 'jpeg'):
+                maybe_path = '{0}.{1}'.format(maybe_stem, ext)
+                if os.access(maybe_path, os.F_OK):
+                    return maybe_path
+
+        return img_path  # which may not exist
 
     def import_images_for_post_html(self, post):
         if not self.imagemaps:
@@ -280,10 +282,7 @@ class Command(ImportCommand):
             # TODO: is this in the account's timezone or what?
             post.published = publ_dt
 
-            content_root = BeautifulSoup(event.findtext('event'))
-            # Add line breaks to the post if it's not preformatted.
-            if not int(event_props.get('opt_preformatted', 0)):
-                self.format_soup(content_root)
+            content_root = BeautifulSoup(event.findtext('event'), selfClosingTags=('lj',))
             # Remove any lj-raw tags.
             for el in content_root.findAll(re.compile(r'lj-(?:raw|cut)')):
                 # Replace it with its children.
@@ -292,11 +291,32 @@ class Command(ImportCommand):
                 el.extract()
                 for child in reversed(list(el.contents)):
                     el_parent.insert(el_index, child)
+            for el in content_root.findAll('lj'):
+                el_parent = el.parent
+                el_index = el_parent.contents.index(el)
+                el.extract()
+
+                try:
+                    user_name = el['user']
+                except KeyError:
+                    comm_name = el['comm']
+                    user_url = 'http://communities.livejournal.com/{0}/'.format(comm_name)
+                else:
+                    if user_name.startswith('_') or user_name.endswith('_'):
+                        user_url = 'http://users.livejournal.com/{0}/'.format(user_name)
+                    else:
+                        user_url = 'http://{0}.livejournal.com/'.format(user_name)
+                user_link = BeautifulSoup(u'<a href="{0}">{1}</a>'.format(user_url, user_name))
+
+                el_parent.insert(el_index, user_link)
             # TODO: handle opt_nocomments prop
             # TODO: put music and mood in the post content
             # TODO: handle taglist prop
 
-            post.html = str(content_root)
+            post.html = str(content_root).decode('utf8')
+            # Add line breaks to the post if it's not preformatted.
+            if not int(event_props.get('opt_preformatted', 0)):
+                post.html = self.html_text_transform(post.html)
             post.html, assets = self.import_images_for_post_html(post)
 
             pic_keyword = event_props.get('picture_keyword')
