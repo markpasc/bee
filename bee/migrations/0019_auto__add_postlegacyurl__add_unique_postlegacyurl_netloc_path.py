@@ -13,7 +13,7 @@ class Migration(SchemaMigration):
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('post', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['bee.Post'])),
             ('netloc', self.gf('django.db.models.fields.CharField')(max_length=90)),
-            ('path', self.gf('django.db.models.fields.CharField')(max_length=255)),
+            ('path', self.gf('django.db.models.fields.CharField')(max_length=100)),
         ))
         db.send_create_signal('bee', ['PostLegacyUrl'])
 
@@ -112,7 +112,7 @@ class Migration(SchemaMigration):
             'Meta': {'unique_together': "(('netloc', 'path'),)", 'object_name': 'PostLegacyUrl'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'netloc': ('django.db.models.fields.CharField', [], {'max_length': '90'}),
-            'path': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
+            'path': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'post': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['bee.Post']"})
         },
         'bee.template': {

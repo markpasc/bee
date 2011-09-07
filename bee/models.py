@@ -140,7 +140,7 @@ class PostLegacyUrl(models.Model):
 
     post = models.ForeignKey(Post, unique=True)
     netloc = models.CharField(max_length=90)
-    path = models.CharField(max_length=255)
+    path = models.CharField(max_length=100)
 
     class Meta:
         unique_together = (('netloc', 'path'),)
