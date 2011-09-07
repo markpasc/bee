@@ -81,6 +81,8 @@ admin.site.register(AuthorSite, AuthorSiteAdmin)
 
 class Link404ResultAdmin(admin.ModelAdmin):
     list_display = ('url', 'post', 'status', 'error')
+    list_filter = ('status',)
+    search_fields = ('url', 'error')
 
 admin.site.register(Link404Result, Link404ResultAdmin)
 
