@@ -168,6 +168,7 @@ class Command(ImportCommand):
         if action == 'list_entries':
             self.list_entries(entries)
         else:
+            self.set_up_filemaps(**options)
             self.import_entries(entries)
 
     def set_up_database(self, dbpath):
@@ -220,13 +221,6 @@ class Command(ImportCommand):
                 entry.atom_id[len(entry.atom_id)-30:] if entry.atom_id else '',
                 entry.title[:50] if entry.text else '',
                 entry.num_comments or '')
-
-    def filename_for_image_url(self, image_url):
-        url_parts = urlsplit(image_url)
-        path_parts = [unquote(part) for part in url_parts.path.split('/') if part]
-        image_path = join(dirname(self.dbpath), url_parts.netloc, *path_parts)
-        logging.debug('~~ LOOKING FOR IMAGE %r. IS IT AT %r? ~~', image_url, image_path)
-        return image_path
 
     def generate_atom_id(self, mt_entry):
         # Generate an Atom ID like Movable Type does.
@@ -300,8 +294,8 @@ class Command(ImportCommand):
                 asset.posts.add(post)
 
             legacy_url_parts = urlsplit(self.archive_url_for_post(mt_entry))
-            bee.models.PostLegacyUrl.objects.get_or_create(post=post,
-                defaults={'netloc': legacy_url_parts.netloc, 'path': legacy_url_parts.path})
+            bee.models.PostLegacyUrl.objects.get_or_create(netloc=legacy_url_parts.netloc,
+                path=legacy_url_parts.path, defaults={'post': post})
 
             logging.debug('Imported %r (%r)!', post.title, atom_id)
 

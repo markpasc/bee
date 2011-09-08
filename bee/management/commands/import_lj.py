@@ -5,12 +5,10 @@ from itertools import ifilterfalse
 import logging
 from optparse import make_option
 import os
-from os.path import join, basename, expanduser
 import random
 import re
 import string
 import sys
-from urllib import unquote
 from urlparse import urlsplit, urljoin
 from xml.etree import ElementTree
 
@@ -41,12 +39,6 @@ class Command(ImportCommand):
             help='The prefix of the Atom ID to store',
             default=None,
         ),
-        make_option('--images',
-            action='append',
-            dest='imagemap',
-            metavar='BASEURL=PATH',
-            help='When posts refer to images at BASEURL, import them from PATH on disk',
-        ),
     )
 
     def __init__(self, *args, **kwargs):
@@ -57,8 +49,8 @@ class Command(ImportCommand):
     def handle(self, source, **options):
         author_site_bridge = bee.models.AuthorSite.objects.get(author=1)
         self.author_site = author_site_bridge.site
+        self.set_up_filemaps(**options)
 
-        self.imagemaps = dict((k, expanduser(v)) for k, v in (imageurl.split('=', 1) for imageurl in options['imagemap'] or ()))
         self.import_events(sys.stdin if source == '-' else source,
             options['atomid'], options['foaf'])
 
@@ -138,12 +130,11 @@ class Command(ImportCommand):
         comment.title = comment_el.findtext('subject') or ''
 
         body = comment_el.findtext('body')
-        if int(comment_props.get('opt_preformatted') or 0):
-            comment.comment = body
-        else:
+        content_root = BeautifulSoup(body, selfClosingTags=('lj',))
+        self.apply_lj_tags(content_root)
+        comment.comment = str(content_root).decode('utf8')
+        if not int(comment_props.get('opt_preformatted') or 0):
             logging.debug("    Oops, comment not preformatted, let's parse it")
-            content_root = BeautifulSoup(body)
-            comment.comment = str(content_root).decode('utf8')
             comment.comment = self.html_text_transform(comment.comment)
 
         if isinstance(asset, comment_cls):
@@ -177,11 +168,9 @@ class Command(ImportCommand):
             self.import_comment(reply_el, comment, openid_for, root_atom_id)
 
     def filename_for_image_url(self, image_url):
-        matching_maps = [(map_url, map_path) for map_url, map_path in self.imagemaps.iteritems() if image_url.startswith(map_url)]
-        if not matching_maps:
+        img_path = super(Command, self).filename_for_image_url(image_url)
+        if img_path is None:
             return
-        map_url, map_path = matching_maps[0]
-        img_path = join(map_path, unquote(image_url[len(map_url):]))
 
         # Try more aggressively to find an image if it doesn't exist as-is.
         if not os.access(img_path, os.F_OK):
@@ -193,10 +182,33 @@ class Command(ImportCommand):
 
         return img_path  # which may not exist
 
-    def import_images_for_post_html(self, post):
-        if not self.imagemaps:
-            return post.html, ()
-        return super(Command, self).import_images_for_post_html(post)
+    def apply_lj_tags(self, content_root):
+        # Remove any lj-raw tags.
+        for el in content_root.findAll(re.compile(r'lj-(?:raw|cut)')):
+            # Replace it with its children.
+            el_parent = el.parent
+            el_index = el_parent.contents.index(el)
+            el.extract()
+            for child in reversed(list(el.contents)):
+                el_parent.insert(el_index, child)
+        for el in content_root.findAll('lj'):
+            el_parent = el.parent
+            el_index = el_parent.contents.index(el)
+            el.extract()
+
+            try:
+                user_name = el['user']
+            except KeyError:
+                user_name = el['comm']
+                user_url = 'http://communities.livejournal.com/{0}/'.format(user_name)
+            else:
+                if user_name.startswith('_') or user_name.endswith('_'):
+                    user_url = 'http://users.livejournal.com/{0}/'.format(user_name)
+                else:
+                    user_url = 'http://{0}.livejournal.com/'.format(user_name)
+            user_link = BeautifulSoup(u'<a href="{0}">{1}</a>'.format(user_url, user_name))
+
+            el_parent.insert(el_index, user_link)
 
     def import_events(self, source, atomid_prefix, foafsource):
         tree = ElementTree.parse(source)
@@ -283,32 +295,7 @@ class Command(ImportCommand):
             post.published = publ_dt
 
             content_root = BeautifulSoup(event.findtext('event'), selfClosingTags=('lj',))
-            # Remove any lj-raw tags.
-            for el in content_root.findAll(re.compile(r'lj-(?:raw|cut)')):
-                # Replace it with its children.
-                el_parent = el.parent
-                el_index = el_parent.contents.index(el)
-                el.extract()
-                for child in reversed(list(el.contents)):
-                    el_parent.insert(el_index, child)
-            for el in content_root.findAll('lj'):
-                el_parent = el.parent
-                el_index = el_parent.contents.index(el)
-                el.extract()
-
-                try:
-                    user_name = el['user']
-                except KeyError:
-                    comm_name = el['comm']
-                    user_url = 'http://communities.livejournal.com/{0}/'.format(comm_name)
-                else:
-                    if user_name.startswith('_') or user_name.endswith('_'):
-                        user_url = 'http://users.livejournal.com/{0}/'.format(user_name)
-                    else:
-                        user_url = 'http://{0}.livejournal.com/'.format(user_name)
-                user_link = BeautifulSoup(u'<a href="{0}">{1}</a>'.format(user_url, user_name))
-
-                el_parent.insert(el_index, user_link)
+            self.apply_lj_tags(content_root)
             # TODO: handle opt_nocomments prop
             # TODO: put music and mood in the post content
             # TODO: handle taglist prop
