@@ -38,7 +38,7 @@
         this.preventNavigation();
         if ($published.size()) {
             this.updatePublished();
-            $.doTimeout('editor.updatePublished', 60000, function () { editor.updatePublished() });
+            $.doTimeout('editor.updatePublished', 60000, function () { return editor.updatePublished() });
         }
         jelement.find('.editor-trust').multiselect({  // might not exist
             header: false,
