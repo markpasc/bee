@@ -147,28 +147,28 @@
         if (e.altKey || e.shiftKey || !e.ctrlKey)
             return true;
 
-        if (e.which == 66) {
+        if (e.which == 66) {  // Bold
             document.execCommand('bold');
             return false;
         }
-        else if (e.which == 72) {
+        else if (e.which == 72) {  // Htmlify
             var text = window.getSelection().toString();
             document.execCommand('insertHTML', false, text);
             return false;
         }
-        else if (e.which == 73) {
+        else if (e.which == 73) {  // Italicize
             document.execCommand('italic');
             return false;
         }
-        else if (e.which == 76) {
+        else if (e.which == 76) {  // Linkify
             document.execCommand('createLink', false, '#');
             return false;
         }
-        else if (e.which == 221) {
+        else if (e.which == 221) {  // ] to blockquote
             document.execCommand('indent');
             return false;
         }
-        else if (e.which == 219) {
+        else if (e.which == 219) {  // [ to unblockquote
             document.execCommand('outdent');
             return false;
         }
