@@ -162,7 +162,8 @@
             return false;
         }
         else if (e.which == 76) {  // Linkify
-            document.execCommand('createLink', false, '#');
+            document.execCommand('createLink', false, ' ');
+            // TODO: activate the link editor for the link under selection
             return false;
         }
         else if (e.which == 221) {  // ] to blockquote
