@@ -184,7 +184,15 @@
         $linkeditor.bind('keyup', function (e) {
             $link.attr('href', $(this).text());
         });
-        // TODO: make tab move the focus after the link
+        $linkeditor.bind('keydown', function (e) {
+            if (e.altKey || e.shiftKey || e.ctrlKey)
+                return true;
+            if (e.which != 9 && e.which != 13)
+                return true;
+            $link.focus();
+            window.getSelection().collapse($link.get(0), 1);
+            return false;
+        });
         $linkeditor.show();
         $linkeditor.offset({ top: linkpos.top + $link.height(), left: linkpos.left });
     };
