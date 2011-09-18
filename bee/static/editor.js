@@ -150,32 +150,29 @@
 
         if (e.which == 66) {  // Bold
             document.execCommand('bold');
-            return false;
         }
         else if (e.which == 72) {  // Htmlify
             var text = window.getSelection().toString();
             document.execCommand('insertHTML', false, text);
-            return false;
         }
         else if (e.which == 73) {  // Italicize
             document.execCommand('italic');
-            return false;
         }
         else if (e.which == 76) {  // Linkify
             document.execCommand('createLink', false, ' ');
             // TODO: activate the link editor for the link under selection
-            return false;
         }
         else if (e.which == 221) {  // ] to blockquote
             document.execCommand('indent');
-            return false;
         }
         else if (e.which == 219) {  // [ to unblockquote
             document.execCommand('outdent');
-            return false;
+        }
+        else {
+            return true;
         }
 
-        return true;
+        return false;
     };
 
     Editor.prototype.showLinkEditor = function (e) {
