@@ -31,7 +31,8 @@
 
         // Set up link editor.
         $linkEditor.hide();
-        $content.find('a').live('click', false).live('mouseover', function (e) { return editor.activateLinkEditor(e) })
+        $content.find('a').live('click', function (e) { editor.activateLinkEditor(e); return false })
+            .live('mouseover', function (e) { return editor.showLinkEditor(e) })
             .live('mouseout', function (e) { return editor.deactivateLinkEditor(e) });
 
         // Set up more stuff.
@@ -176,7 +177,7 @@
         return true;
     };
 
-    Editor.prototype.activateLinkEditor = function (e) {
+    Editor.prototype.showLinkEditor = function (e) {
         var $link = $(e.target);
         var linkpos = $link.offset();
 
@@ -185,9 +186,16 @@
         $linkeditor.bind('keyup', function (e) {
             $link.attr('href', $(this).text());
         });
+        // TODO: make tab move the focus after the link
         $linkeditor.show();
         $linkeditor.offset({ top: linkpos.top + $link.height(), left: linkpos.left });
+    };
+
+    Editor.prototype.activateLinkEditor = function (e) {
+        this.showLinkEditor(e);
+        var $linkeditor = this.jelement.find('.editor-link-editor');
         $linkeditor.focus();
+        window.getSelection().selectAllChildren($linkeditor.get(0));
     };
 
     Editor.prototype.deactivateLinkEditor = function (e) {
