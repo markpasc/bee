@@ -235,6 +235,12 @@
         var $editor = this.jelement;
         var data = this.serialize();
 
+        // Always have a published date if the editor has one.
+        var $published = $editor.find('.editor-published');
+        if ($published.size() && !data['published']) {
+            data['published'] = $.trim($published.text());
+        }
+
         var $entryId = $editor.find('.editor-id');
         if ($entryId.size()) {
             data['id'] = $entryId.val();
