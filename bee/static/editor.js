@@ -31,9 +31,10 @@
 
         // Set up link editor.
         $linkEditor.hide();
-        $content.find('a').live('click', function (e) { editor.activateLinkEditor(e); return false })
-            .live('mouseover', function (e) { return editor.showLinkEditor(e) })
-            .live('mouseout', function (e) { return editor.deactivateLinkEditor(e) });
+        $linkEditor.blur(function (e) { return editor.deactivateLinkEditor() });
+        $content.find('a').live('click', function (e) { editor.activateLinkEditor($(e.target)); return false })
+            .live('mouseover', function (e) { return editor.showLinkEditor($(e.target)) })
+            .live('mouseout', function (e) { return editor.deactivateLinkEditor() });
 
         // Set up more stuff.
         this.preventNavigation();
@@ -160,7 +161,9 @@
         }
         else if (e.which == 76) {  // Linkify
             document.execCommand('createLink', false, ' ');
-            // TODO: activate the link editor for the link under selection
+            var $link = $(window.getSelection().anchorNode).parent();
+            $link.attr('href', '');
+            this.activateLinkEditor($link);
         }
         else if (e.which == 221) {  // ] to blockquote
             document.execCommand('indent');
@@ -175,8 +178,7 @@
         return false;
     };
 
-    Editor.prototype.showLinkEditor = function (e) {
-        var $link = $(e.target);
+    Editor.prototype.showLinkEditor = function ($link) {
         var linkpos = $link.offset();
 
         var $linkeditor = this.jelement.find('.editor-link-editor');
@@ -197,16 +199,15 @@
         $linkeditor.offset({ top: linkpos.top + $link.height(), left: linkpos.left });
     };
 
-    Editor.prototype.activateLinkEditor = function (e) {
-        this.showLinkEditor(e);
+    Editor.prototype.activateLinkEditor = function ($link) {
+        this.showLinkEditor($link);
         var $linkeditor = this.jelement.find('.editor-link-editor');
         $linkeditor.focus();
         window.getSelection().selectAllChildren($linkeditor.get(0));
     };
 
-    Editor.prototype.deactivateLinkEditor = function (e) {
+    Editor.prototype.deactivateLinkEditor = function () {
         var $linkeditor = this.jelement.find('.editor-link-editor');
-        $linkeditor.blur();
         $linkeditor.unbind('keyup');
         $linkeditor.hide();
     };
